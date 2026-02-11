@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 from google import genai
 from google.genai import types
@@ -9,6 +10,8 @@ DEFAULT_PROMPT = (
     "You are a nutrition assistant. From this photo, estimate what the food is and give an approximate nutrition breakdown. "
     "Return: (1) what it looks like, (2) assumed portion size, (3) estimated calories (kcal) and protein (g), and (4) a short note about uncertainty."
 )
+
+load_dotenv()
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
@@ -24,6 +27,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.post("/analyze")
 async def analyze(image: UploadFile = File(...), prompt: str = Form("")):
