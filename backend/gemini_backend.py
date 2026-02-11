@@ -1,4 +1,6 @@
 import os
+import json
+import re
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -7,8 +9,12 @@ from google import genai
 from google.genai import types
 
 DEFAULT_PROMPT = (
-    "You are a nutrition assistant. From this photo, estimate what the food is and give an approximate nutrition breakdown. "
-    "Return: (1) what it looks like, (2) assumed portion size, (3) estimated calories (kcal) and protein (g), and (4) a short note about uncertainty."
+    "You are a nutrition assistant. From this photo, estimate what the food is and give an approximate nutrition breakdown.\n\n"
+    "Return two parts:\n"
+    "1. A detailed markdown summary for the user. Include a title, portion estimate, and a friendly nutritional note.\n"
+    "2. A structured JSON block delimited by ```json ... ``` containing the following fields: "
+    "'dish_name', 'portion_size_g', 'calories_kcal', 'protein_g', 'carbs_g', 'fats_g', 'ingredients' (list of strings).\n\n"
+    "Ensure the JSON is valid and accurate based on your visual estimation."
 )
 
 load_dotenv()
@@ -28,6 +34,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def extract_json(text):
+    """Extracts JSON from markdown code blocks."""
+    match = re.search(r'```json\s*(.*?)\s*```', text, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return None
+    return None
+
+def clean_markdown(text):
+    """Removes the JSON block from the markdown for clean display."""
+    return re.sub(r'```json\s*.*?\s*```', '', text, flags=re.DOTALL).strip()
 
 @app.post("/analyze")
 async def analyze(image: UploadFile = File(...), prompt: str = Form("")):
@@ -46,10 +65,15 @@ async def analyze(image: UploadFile = File(...), prompt: str = Form("")):
             contents=[final_prompt, img_part],
         )
 
+        full_text = response.text
+        structured_data = extract_json(full_text)
+        markdown_summary = clean_markdown(full_text)
+
         return {
             "filename": image.filename,
             "content_type": mime,
-            "result": response.text,
+            "markdown": markdown_summary,
+            "nutrition_data": structured_data,
         }
 
     except HTTPException:

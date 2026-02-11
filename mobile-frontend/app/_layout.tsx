@@ -6,7 +6,8 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -46,9 +47,33 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colors.isDark ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      </Stack>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            contentStyle: {
+              backgroundColor: colors.isDark
+                ? DarkTheme.colors.background
+                : DefaultTheme.colors.background,
+            },
+          }}
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="meal-info"
+            options={{
+              title: "Meal Info",
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              headerTransparent: true,
+              headerTintColor: "rgba(255, 255, 255, 0.8)",
+              headerShown: Platform.select({
+                android: false,
+                default: true,
+              }),
+            }}
+          />
+        </Stack>
+      </GestureHandlerRootView>
     </ThemeProvider>
   );
-} 
+}

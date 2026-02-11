@@ -1,30 +1,34 @@
-import { Tabs } from "expo-router";
+import {
+  NativeTabs,
+  VectorIcon,
+  Label,
+  Icon,
+} from "expo-router/unstable-native-tabs";
 import React from "react";
-
-import { HapticTab } from "@/components/haptic-tab";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
-  const colors = useTheme();
+  const theme = useTheme();
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}
+    <NativeTabs
+       labelVisibilityMode="auto"
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }: { color: string }) => (
-            <Ionicons size={28} name="home-outline" color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      <NativeTabs.Trigger name="index">
+        <Icon src={<VectorIcon family={MaterialIcons} name="home" />} />
+        <Label>Home</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="analysis">
+        <Icon src={<VectorIcon family={MaterialIcons} name="bar-chart" />} />
+        <Label>Analysis</Label>
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="profile">
+        <Icon src={<VectorIcon family={MaterialIcons} name="person" />} />
+        <Label>Profile</Label>
+      </NativeTabs.Trigger>
+    </NativeTabs>
   );
 }
