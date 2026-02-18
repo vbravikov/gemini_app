@@ -5,8 +5,9 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
+import { BlurView } from "expo-blur";
 import { Stack } from "expo-router";
-import { ActivityIndicator, Platform, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export const unstable_settings = {
@@ -61,15 +62,23 @@ export default function RootLayout() {
           <Stack.Screen
             name="meal-info"
             options={{
-              title: "Meal Info",
+              title: "Analysis Results",
               presentation: "modal",
               animation: "slide_from_bottom",
               headerTransparent: true,
-              headerTintColor: "rgba(255, 255, 255, 0.8)",
-              headerShown: Platform.select({
-                android: false,
-                default: true,
-              }),
+              headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",
+              headerShown: true,
+            }}
+          />
+          <Stack.Screen
+            name="log-details"
+            options={{
+              title: "Log Entry",
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              headerTransparent: true,
+              headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",
+              headerShown: true,
             }}
           />
         </Stack>

@@ -1,34 +1,34 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import { BlurView } from "expo-blur";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
   FlatList,
-  TouchableOpacity,
-  StyleSheet,
-  useWindowDimensions,
-  type LayoutChangeEvent,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
-  type ScaledSize,
-  ViewStyle,
   Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+  ViewStyle,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ScaledSize,
 } from "react-native";
-import type {
-  TopTabsProps,
-  Tab,
-  ContentItemProps,
-  AnimatedTabItemProps,
-} from "./types";
 import Animated, {
+  Extrapolation,
+  interpolate,
+  interpolateColor,
+  useAnimatedProps,
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  useAnimatedScrollHandler,
-  interpolate,
-  Extrapolation,
-  useAnimatedProps,
-  interpolateColor,
 } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
+import type {
+  AnimatedTabItemProps,
+  ContentItemProps,
+  Tab,
+  TopTabsProps,
+} from "./types";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 const AnimatedFlatList = Animated.createAnimatedComponent(
@@ -208,7 +208,7 @@ export const TopTabs: React.FC<TopTabsProps> = ({
           animated: true,
           viewPosition: 0.2,
         });
-      } catch (error) {
+      } catch {
         const offset = tabPositions.current[index] || 0;
         tabBarFlatListRef.current?.scrollToOffset({
           offset,
@@ -258,7 +258,7 @@ export const TopTabs: React.FC<TopTabsProps> = ({
         animated: true,
       });
       setActiveIndex(index);
-    } catch (error) {
+    } catch {
       contentFlatListRef.current?.scrollToOffset({
         offset: index * screenWidth,
         animated: true,
@@ -422,9 +422,6 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 16,
   },
-  activeTabText: {
-    fontWeight: "600",
-  },
   underline: {
     position: "absolute",
     bottom: 0,
@@ -437,12 +434,6 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flex: 1,
     position: "relative",
-  },
-  contentContainer: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "center",
-    alignItems: "center",
   },
   contentText: {
     fontSize: 18,

@@ -1,56 +1,40 @@
 import { TopTabs } from "@/components/ui/base/tabs";
 import { MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { EnrichedMarkdownText } from "react-native-enriched-markdown";
 import Animated, {
+  Extrapolate,
   FadeIn,
   FadeOut,
+  interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  interpolate,
-  Extrapolate,
 } from "react-native-reanimated";
 import { useTheme } from "../constants/theme";
 import { AnalysisResponse, analyzeImage, NutritionData } from "../utils/api";
-import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
+import { useMealLogs } from "../hooks/useMealLogs";
+import { MealSummaryTab } from "@/components/ui/meal-analysis/MealSummaryTab";
+import {
+  NutritionalOverviewCard,
+  PortionWeightCard,
+  MacronutrientsGrid,
+} from "@/components/ui/meal-analysis/MealDetailsSections";
+import { IngredientCard } from "@/components/ui/meal-analysis/IngredientItem";
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const HEADER_HEIGHT = SCREEN_HEIGHT * 0.4;
-
-const SummaryTab = ({ markdown, theme }: { markdown: string; theme: any }) => {
-  return (
-    <View style={styles.tabContent}>
-      {/* AI Analysis */}
-      <Text style={[styles.sectionTitle, { color: theme.text }]}>
-        AI Analysis
-      </Text>
-      <View
-        style={[
-          styles.markdownCard,
-          {
-            backgroundColor: theme.card,
-            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-          },
-        ]}
-      >
-        <EnrichedMarkdownText markdown={markdown} />
-      </View>
-    </View>
-  );
-};
 
 const DetailsTab = ({
   nutrition,
@@ -59,262 +43,24 @@ const DetailsTab = ({
   nutrition: NutritionData;
   theme: any;
 }) => {
-  // Calculate percentages for progress bars (assuming daily goals)
-  const proteinPercent = Math.min((nutrition.protein_g / 140) * 100, 100);
-  const carbsPercent = Math.min((nutrition.carbs_g / 250) * 100, 100);
-  const fatsPercent = Math.min((nutrition.fats_g / 70) * 100, 100);
-
   return (
     <View style={styles.tabContent}>
-      {/* Portion Size Card */}
-      <View
-        style={[
-          styles.detailCard,
-          {
-            backgroundColor: theme.card,
-            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-          },
-        ]}
-      >
-        <MaterialIcons name="scale" size={24} color={theme.tint} />
-        <Text
-          style={[styles.detailValue, { color: theme.text, marginLeft: 12 }]}
-        >
-          {nutrition.portion_size_g}g
-        </Text>
-        <Text
-          style={[
-            styles.detailLabel,
-            { color: theme.textMuted, marginLeft: "auto" },
-          ]}
-        >
-          Approx. Weight
-        </Text>
-      </View>
+      <PortionWeightCard weight={nutrition.portion_size_g} theme={theme} />
 
-      {/* Energy Summary Card */}
       <Text style={[styles.sectionTitle, { color: theme.text }]}>
         Nutritional Overview
       </Text>
-      <View
-        style={[
-          styles.summaryCard,
-          {
-            backgroundColor: theme.card,
-            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-          },
-        ]}
-      >
-        <View style={styles.summaryHeader}>
-          <View>
-            <Text style={[styles.summaryLabel, { color: theme.textMuted }]}>
-              TOTAL ENERGY
-            </Text>
-            <View style={styles.calorieRow}>
-              <Text style={[styles.calorieValue, { color: theme.text }]}>
-                {nutrition.calories_kcal}
-              </Text>
-              <Text style={[styles.calorieUnit, { color: theme.textMuted }]}>
-                kcal
-              </Text>
-            </View>
-          </View>
-          <View
-            style={[
-              styles.goalBadge,
-              {
-                backgroundColor: theme.isDark ? "#0f3d1f" : "#dcfce7",
-                borderColor: theme.isDark ? "#166534" : "#86efac",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.goalBadgeText,
-                { color: theme.isDark ? "#4ade80" : "#166534" },
-              ]}
-            >
-              Within Goal
-            </Text>
-          </View>
-        </View>
+      <NutritionalOverviewCard
+        nutrition={nutrition}
+        theme={theme}
+        showBadge={true}
+      />
 
-        {/* Macro Progress Bars */}
-        <View style={styles.macroProgressSection}>
-          {/* Protein */}
-          <View style={styles.macroProgressItem}>
-            <View style={styles.macroProgressHeader}>
-              <Text style={[styles.macroProgressLabel, { color: theme.text }]}>
-                Protein
-              </Text>
-              <Text style={[styles.macroProgressValue, { color: theme.text }]}>
-                {nutrition.protein_g}g{" "}
-                <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                  / 140g
-                </Text>
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.progressBarTrack,
-                { backgroundColor: theme.isDark ? "#334155" : "#f1f5f9" },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { backgroundColor: theme.tint, width: `${proteinPercent}%` },
-                ]}
-              />
-            </View>
-          </View>
-
-          {/* Carbs */}
-          <View style={styles.macroProgressItem}>
-            <View style={styles.macroProgressHeader}>
-              <Text style={[styles.macroProgressLabel, { color: theme.text }]}>
-                Carbs
-              </Text>
-              <Text style={[styles.macroProgressValue, { color: theme.text }]}>
-                {nutrition.carbs_g}g{" "}
-                <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                  / 250g
-                </Text>
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.progressBarTrack,
-                { backgroundColor: theme.isDark ? "#334155" : "#f1f5f9" },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { backgroundColor: "#60a5fa", width: `${carbsPercent}%` },
-                ]}
-              />
-            </View>
-          </View>
-
-          {/* Fat */}
-          <View style={styles.macroProgressItem}>
-            <View style={styles.macroProgressHeader}>
-              <Text style={[styles.macroProgressLabel, { color: theme.text }]}>
-                Fat
-              </Text>
-              <Text style={[styles.macroProgressValue, { color: theme.text }]}>
-                {nutrition.fats_g}g{" "}
-                <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                  / 70g
-                </Text>
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.progressBarTrack,
-                { backgroundColor: theme.isDark ? "#334155" : "#f1f5f9" },
-              ]}
-            >
-              <View
-                style={[
-                  styles.progressBarFill,
-                  { backgroundColor: "#fb923c", width: `${fatsPercent}%` },
-                ]}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Micronutrients */}
-        <View style={styles.micronutrientSection}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.micronutrientScroll}
-          >
-            <View
-              style={[
-                styles.microChip,
-                {
-                  backgroundColor: theme.isDark ? "#1e293b" : "#f8fafc",
-                  borderColor: theme.isDark ? "#334155" : "#e2e8f0",
-                },
-              ]}
-            >
-              <View style={[styles.microDot, { backgroundColor: "#22c55e" }]} />
-              <Text style={[styles.microText, { color: theme.text }]}>
-                Fiber 8g
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.microChip,
-                {
-                  backgroundColor: theme.isDark ? "#1e293b" : "#f8fafc",
-                  borderColor: theme.isDark ? "#334155" : "#e2e8f0",
-                },
-              ]}
-            >
-              <View style={[styles.microDot, { backgroundColor: "#eab308" }]} />
-              <Text style={[styles.microText, { color: theme.text }]}>
-                Iron 15%
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.microChip,
-                {
-                  backgroundColor: theme.isDark ? "#1e293b" : "#f8fafc",
-                  borderColor: theme.isDark ? "#334155" : "#e2e8f0",
-                },
-              ]}
-            >
-              <View style={[styles.microDot, { backgroundColor: "#f87171" }]} />
-              <Text style={[styles.microText, { color: theme.text }]}>
-                Sodium 420mg
-              </Text>
-            </View>
-          </ScrollView>
-        </View>
-      </View>
-
-      {/* Macronutrients Grid */}
       <Text style={[styles.sectionTitle, { color: theme.text }]}>
         Macronutrients
       </Text>
-      <View style={styles.macroGrid}>
-        <MacroItem
-          label="Protein"
-          value={`${nutrition.protein_g}g`}
-          icon="fitness-center"
-          color="#3b82f6"
-          theme={theme}
-        />
-        <MacroItem
-          label="Carbs"
-          value={`${nutrition.carbs_g}g`}
-          icon="rice-bowl"
-          color="#f97316"
-          theme={theme}
-        />
-        <MacroItem
-          label="Fats"
-          value={`${nutrition.fats_g}g`}
-          icon="water-drop"
-          color="#eab308"
-          theme={theme}
-        />
-        <MacroItem
-          label="Calories"
-          value={`${nutrition.calories_kcal}`}
-          icon="local-fire-department"
-          color={theme.tint}
-          theme={theme}
-        />
-      </View>
+      <MacronutrientsGrid nutrition={nutrition} theme={theme} />
 
-      {/* Ingredients List */}
       <Text style={[styles.sectionTitle, { color: theme.text }]}>
         Identified Ingredients
       </Text>
@@ -327,86 +73,15 @@ const DetailsTab = ({
       </View>
 
       <View style={styles.ingredientsList}>
-        {nutrition.ingredients.map((ingredient, index) => {
-          // Mock calorie data - you'd get this from your API
-          const emojiMap: { [key: string]: string } = {
-            chicken: "🍗",
-            avocado: "🥑",
-            quinoa: "🍚",
-            tomato: "🍅",
-            rice: "🍚",
-            broccoli: "🥦",
-            salmon: "🐟",
-            egg: "🥚",
-          };
-
-          const emoji = Object.keys(emojiMap).find((key) =>
-            ingredient.toLowerCase().includes(key),
-          )
-            ? emojiMap[
-                Object.keys(emojiMap).find((key) =>
-                  ingredient.toLowerCase().includes(key),
-                )!
-              ]
-            : "🍽️";
-
-          const mockCalories = Math.floor(Math.random() * 200) + 50;
-
-          return (
-            <View
-              key={index}
-              style={[
-                styles.ingredientCard,
-                {
-                  backgroundColor: theme.card,
-                  borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.ingredientIcon,
-                  {
-                    backgroundColor: theme.isDark
-                      ? "rgba(19, 236, 55, 0.1)"
-                      : "#f0fdf4",
-                  },
-                ]}
-              >
-                <Text style={styles.ingredientEmoji}>{emoji}</Text>
-              </View>
-              <View style={styles.ingredientInfo}>
-                <Text style={[styles.ingredientName, { color: theme.text }]}>
-                  {ingredient}
-                </Text>
-                <Text
-                  style={[styles.ingredientMeta, { color: theme.textMuted }]}
-                >
-                  ~
-                  {Math.round(
-                    nutrition.portion_size_g / nutrition.ingredients.length,
-                  )}
-                  g
-                </Text>
-              </View>
-              <View style={styles.ingredientCalories}>
-                <Text
-                  style={[styles.ingredientCalValue, { color: theme.text }]}
-                >
-                  {mockCalories}
-                </Text>
-                <Text
-                  style={[
-                    styles.ingredientCalLabel,
-                    { color: theme.textMuted },
-                  ]}
-                >
-                  kcal
-                </Text>
-              </View>
-            </View>
-          );
-        })}
+        {nutrition.ingredients.map((ingredient, index) => (
+          <IngredientCard
+            key={index}
+            ingredient={ingredient}
+            portionSizeG={nutrition.portion_size_g}
+            ingredientsCount={nutrition.ingredients.length}
+            theme={theme}
+          />
+        ))}
       </View>
 
       <TouchableOpacity style={styles.addIngredientButton}>
@@ -424,43 +99,18 @@ const DetailsTab = ({
   );
 };
 
-const MacroItem = ({ label, value, icon, color, theme }: any) => (
-  <View
-    style={[
-      styles.macroItem,
-      {
-        backgroundColor: theme.card,
-        borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-      },
-    ]}
-  >
-    <View style={[styles.macroIconCircle, { backgroundColor: `${color}20` }]}>
-      <MaterialIcons name={icon} size={20} color={color} />
-    </View>
-    <Text style={[styles.macroValueText, { color: theme.text }]}>{value}</Text>
-    <Text style={[styles.macroLabelText, { color: theme.textMuted }]}>
-      {label}
-    </Text>
-  </View>
-);
-
 const MealInfo = () => {
   const params = useLocalSearchParams<{ photoUri: string }>();
   const router = useRouter();
   const theme = useTheme();
+  const { addLog } = useMealLogs();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const scrollY = useSharedValue(0);
 
-  useEffect(() => {
-    if (params.photoUri) {
-      handleAnalysis();
-    }
-  }, [params.photoUri]);
-
-  const handleAnalysis = async () => {
+  const handleAnalysis = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -472,7 +122,20 @@ const MealInfo = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.photoUri]);
+
+  useEffect(() => {
+    if (params.photoUri) {
+      handleAnalysis();
+    }
+  }, [params.photoUri, handleAnalysis]);
+
+  const onAddToLog = useCallback(async () => {
+    if (data && params.photoUri) {
+      await addLog(data, params.photoUri);
+      router.replace("/logs");
+    }
+  }, [data, params.photoUri, addLog, router]);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -481,22 +144,29 @@ const MealInfo = () => {
   });
 
   const headerStyle = useAnimatedStyle(() => {
-    const height = interpolate(
+    const translateY = interpolate(
       scrollY.value,
       [0, HEADER_HEIGHT],
-      [HEADER_HEIGHT, 0],
+      [0, HEADER_HEIGHT * 0.4],
+      Extrapolate.CLAMP,
+    );
+
+    const scale = interpolate(
+      scrollY.value,
+      [-100, 0],
+      [1.2, 1],
       Extrapolate.CLAMP,
     );
 
     const opacity = interpolate(
       scrollY.value,
-      [0, HEADER_HEIGHT * 0.5],
+      [0, HEADER_HEIGHT * 0.8],
       [1, 0],
       Extrapolate.CLAMP,
     );
 
     return {
-      height,
+      transform: [{ translateY }, { scale }],
       opacity,
     };
   });
@@ -527,7 +197,9 @@ const MealInfo = () => {
             </Text>
           </View>
         ),
-        contentComponent: <SummaryTab markdown={data.markdown} theme={theme} />,
+        contentComponent: (
+          <MealSummaryTab markdown={data.markdown} theme={theme} />
+        ),
       },
       {
         id: "details",
@@ -600,7 +272,12 @@ const MealInfo = () => {
     <>
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            backgroundColor: theme.background,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
@@ -664,14 +341,21 @@ const MealInfo = () => {
 
               {/* Bottom Info Card */}
               <View style={styles.heroBottomInfo}>
-                <Text style={styles.heroTitle}>Lunch Detected</Text>
+                <Text style={[styles.heroTitle, { color: theme.text }]}>
+                  Lunch Detected
+                </Text>
                 <View style={styles.heroConfidence}>
                   <MaterialIcons
                     name="auto-awesome"
                     size={16}
                     color={theme.tint}
                   />
-                  <Text style={styles.heroConfidenceText}>
+                  <Text
+                    style={[
+                      styles.heroConfidenceText,
+                      { color: theme.textMuted },
+                    ]}
+                  >
                     AI Confidence: High
                   </Text>
                 </View>
@@ -680,7 +364,6 @@ const MealInfo = () => {
           )}
         </Animated.View>
 
-        {/* Tabs Content - This will become sticky */}
         <View
           style={[styles.tabsWrapper, { backgroundColor: theme.background }]}
         >
@@ -693,24 +376,11 @@ const MealInfo = () => {
         </View>
       </Animated.ScrollView>
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <BlurView
-          intensity={20}
-          tint={theme.isDark ? "dark" : "light"}
-          style={styles.backButtonBlur}
-        >
-          <MaterialIcons
-            name="arrow-back"
-            size={24}
-            color="rgba(255, 255, 255, 0.8)"
-          />
-        </BlurView>
-      </TouchableOpacity>
-
       <BlurView
         intensity={80}
         tint={theme.isDark ? "dark" : "light"}
         style={styles.bottomActionBar}
+        experimentalBlurMethod="dimezisBlurView"
       >
         <View style={styles.bottomActionContent}>
           <TouchableOpacity
@@ -728,9 +398,7 @@ const MealInfo = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.logButton, { backgroundColor: theme.tint }]}
-            onPress={() => {
-              /* Log meal logic */
-            }}
+            onPress={onAddToLog}
           >
             <MaterialIcons
               name="check"
@@ -761,10 +429,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 140,
+    paddingBottom: 200,
   },
   heroContainer: {
     width: "100%",
+    height: HEADER_HEIGHT,
     position: "relative",
     overflow: "hidden",
   },
@@ -778,21 +447,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
-  },
-  backButton: {
-    position: "absolute",
-    top: 56,
-    left: 24,
-    zIndex: 50,
-    borderRadius: 50,
-    overflow: "hidden",
-  },
-  backButtonBlur: {
-    width: 40,
-    height: 40,
-    borderRadius: 50,
-    justifyContent: "center",
-    alignItems: "center",
   },
   detectionDot: {
     position: "absolute",
@@ -828,20 +482,22 @@ const styles = StyleSheet.create({
   },
   detectionLabelText: {
     fontSize: 12,
-    fontWeight: "700",
+    fontFamily: "bold",
   },
   heroBottomInfo: {
     position: "absolute",
-    bottom: 24,
+    bottom: 34,
     left: 24,
     right: 24,
     zIndex: 40,
   },
   heroTitle: {
     fontSize: 30,
-    fontWeight: "800",
-    color: "rgba(0,0,0,0.9)",
+    fontFamily: "bold",
     marginBottom: 4,
+    textShadowColor: "rgba(0, 0, 0, 0.2)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroConfidence: {
     flexDirection: "row",
@@ -850,16 +506,16 @@ const styles = StyleSheet.create({
   },
   heroConfidenceText: {
     fontSize: 14,
-    color: "rgba(0,0,0,0.8)",
-    fontWeight: "500",
+    fontFamily: "semibold",
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   tabsWrapper: {
-    flex: 1,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -24,
-    overflow: "hidden",
-    minHeight: SCREEN_HEIGHT * 0.6,
+    minHeight: SCREEN_HEIGHT,
   },
   tabContent: {
     padding: 20,
@@ -873,7 +529,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    fontWeight: "600",
+    fontFamily: "semibold",
   },
   errorContainer: {
     flex: 1,
@@ -885,7 +541,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     marginBottom: 20,
-    fontWeight: "500",
+    fontFamily: "medium",
   },
   retryButton: {
     paddingHorizontal: 30,
@@ -894,7 +550,7 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: "white",
-    fontWeight: "700",
+    fontFamily: "bold",
     fontSize: 15,
   },
   tabTitleContainer: {
@@ -904,165 +560,13 @@ const styles = StyleSheet.create({
   },
   tabTitleText: {
     fontSize: 15,
+    fontFamily: "medium",
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: "bold",
     marginTop: 0,
     marginBottom: 16,
-  },
-  markdownCard: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  detailCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 24,
-  },
-  detailValue: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  summaryCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 24,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  summaryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 24,
-  },
-  summaryLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  calorieRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 4,
-  },
-  calorieValue: {
-    fontSize: 40,
-    fontWeight: "800",
-    letterSpacing: -1,
-  },
-  calorieUnit: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  goalBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 50,
-    borderWidth: 1,
-  },
-  goalBadgeText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
-  macroProgressSection: {
-    gap: 16,
-  },
-  macroProgressItem: {
-    gap: 6,
-  },
-  macroProgressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  macroProgressLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  macroProgressValue: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  progressBarTrack: {
-    height: 10,
-    borderRadius: 50,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 50,
-  },
-  micronutrientSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.05)",
-  },
-  micronutrientScroll: {
-    gap: 8,
-  },
-  microChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 8,
-    borderWidth: 1,
-  },
-  microDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  microText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  macroGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-    marginBottom: 24,
-  },
-  macroItem: {
-    width: (SCREEN_WIDTH - 52) / 2,
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    alignItems: "center",
-  },
-  macroIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  macroValueText: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  macroLabelText: {
-    fontSize: 12,
-    marginTop: 2,
-    fontWeight: "500",
   },
   ingredientsHeader: {
     flexDirection: "row",
@@ -1071,54 +575,10 @@ const styles = StyleSheet.create({
   },
   adjustButton: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: "semibold",
   },
   ingredientsList: {
     gap: 12,
-  },
-  ingredientCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  ingredientIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  ingredientEmoji: {
-    fontSize: 24,
-  },
-  ingredientInfo: {
-    flex: 1,
-  },
-  ingredientName: {
-    fontSize: 15,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  ingredientMeta: {
-    fontSize: 12,
-  },
-  ingredientCalories: {
-    alignItems: "flex-end",
-  },
-  ingredientCalValue: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  ingredientCalLabel: {
-    fontSize: 11,
   },
   addIngredientButton: {
     flexDirection: "row",
@@ -1128,7 +588,7 @@ const styles = StyleSheet.create({
   },
   addIngredientText: {
     fontSize: 12,
-    fontWeight: "600",
+    fontFamily: "semibold",
   },
   bottomActionBar: {
     position: "absolute",
@@ -1154,7 +614,7 @@ const styles = StyleSheet.create({
   },
   editButtonText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: "bold",
   },
   logButton: {
     flex: 2,
@@ -1171,7 +631,7 @@ const styles = StyleSheet.create({
   },
   logButtonText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: "bold",
   },
 });
 

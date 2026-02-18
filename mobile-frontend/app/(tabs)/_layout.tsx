@@ -13,16 +13,23 @@ export default function TabLayout() {
 
   return (
     <NativeTabs
-       labelVisibilityMode="auto"
+      labelVisibilityMode="selected"
+      backBehavior="history"
+      backgroundColor={theme.background}
+      labelStyle={{
+        color: theme.text,
+      }}
+      indicatorColor={theme.background}
+      tintColor={theme.primaryDark}
     >
       <NativeTabs.Trigger name="index">
         <Icon src={<VectorIcon family={MaterialIcons} name="home" />} />
         <Label>Home</Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="analysis">
-        <Icon src={<VectorIcon family={MaterialIcons} name="bar-chart" />} />
-        <Label>Analysis</Label>
+      <NativeTabs.Trigger name="logs">
+        <Icon src={<VectorIcon family={MaterialIcons} name="history" />} />
+        <Label>Logs</Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
