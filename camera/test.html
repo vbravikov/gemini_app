@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ESP32-CAM BLE Capture</title>
+</head>
+<body>
+  <button id="btn">Connect & Capture</button>
+  <p id="status"></p>
+  <img id="img" style="max-width: 100%; border:1px solid #ccc;" />
+  <script>
+    const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+    const CMD_UUID     = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+    const DATA_UUID    = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+
+    const status = (s) => document.getElementById("status").textContent = s;
+
+    let expectedLen = null;
+    let chunkSize = null;
+    let chunks = [];
+    let received = 0;
+
+    function reset() {
+      expectedLen = null;
+      chunkSize = null;
+      chunks = [];
+      received = 0;
+    }
+
+    document.getElementById("btn").onclick = async () => {
+      try {
+        reset();
+        status("Requesting device...");
+        const device = await navigator.bluetooth.requestDevice({
+            filters: [{ services: [SERVICE_UUID] }],
+            optionalServices: [SERVICE_UUID]
+        });
+
+        status("Connecting...");
+        const server = await device.gatt.connect();
+
+        status("Getting service...");
+        const svc = await server.getPrimaryService(SERVICE_UUID);
+
+        const cmdChar  = await svc.getCharacteristic(CMD_UUID);
+        const dataChar = await svc.getCharacteristic(DATA_UUID);
+
+        status("Subscribing...");
+        await dataChar.startNotifications();
+
+        dataChar.addEventListener("characteristicvaluechanged", (ev) => {
+          const dv = ev.target.value; // DataView
+          const u8 = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+
+          // Header packet: A5 5A + uint32_le(len) + uint16_le(chunk)
+          if (expectedLen === null) {
+            if (u8.length < 8 || u8[0] !== 0xA5 || u8[1] !== 0x5A) {
+              status("Bad header");
+              return;
+            }
+            expectedLen = (u8[2]) | (u8[3] << 8) | (u8[4] << 16) | (u8[5] << 24);
+            chunkSize   = (u8[6]) | (u8[7] << 8);
+            status(`Header: ${expectedLen} bytes (chunk ${chunkSize})`);
+            return;
+          }
+
+          chunks.push(u8);
+          received += u8.length;
+
+          if (received >= expectedLen) {
+            const all = new Uint8Array(expectedLen);
+            let off = 0;
+            for (const c of chunks) {
+              const take = Math.min(c.length, expectedLen - off);
+              all.set(c.subarray(0, take), off);
+              off += take;
+              if (off >= expectedLen) break;
+            }
+
+            const blob = new Blob([all], { type: "image/jpeg" });
+            const url = URL.createObjectURL(blob);
+
+            document.getElementById("img").src = url;
+
+            // Trigger download
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "capture.jpg";
+            a.click();
+
+            status("Saved capture.jpg");
+            reset();
+          } else {
+            status(`Receiving... ${received}/${expectedLen}`);
+          }
+        });
+
+        status("Requesting capture...");
+        await cmdChar.writeValue(new TextEncoder().encode("CAP"));
+      } catch (e) {
+        console.error(e);
+        status("Error: " + e.message);
+      }
+    };
+  </script>
+</body>
+</html>
