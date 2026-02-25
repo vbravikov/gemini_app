@@ -10,7 +10,6 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.stener.nordnes.dietglasses",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -24,7 +23,6 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.stener.nordnes.dietglasses",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
@@ -70,9 +68,10 @@
     },
     "extra": {
       "router": {},
-      "eas": {
-        "projectId": "8bc1d184-a9e0-4eec-b023-cc41561c84ce"
-      }
+      "eas": {}
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

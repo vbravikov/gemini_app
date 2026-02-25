@@ -6,24 +6,24 @@ import { useColorScheme } from "react-native";
  */
 const palette = {
   // Primary Greens (Clean & Professional)
-  primary: "#10B981",      // Emerald 500
-  primaryDark: "#059669",  // Emerald 600
+  primary: "#10B981", // Emerald 500
+  primaryDark: "#059669", // Emerald 600
   primaryLight: "#D1FAE5", // Emerald 100
-  
+
   // Neutral Backgrounds
   backgroundLight: "#F9FAFB", // Slate 50
-  backgroundDark: "#0F172A",  // Slate 900
-  
+  backgroundDark: "#0F172A", // Slate 900
+
   // Card Surfaces
   cardLight: "#FFFFFF",
-  cardDark: "#1E293B",        // Slate 800
-  
+  cardDark: "#1E293B", // Slate 800
+
   // Text Colors
-  textMainLight: "#111827",   // Slate 900
-  textMainDark: "#F8FAFC",    // Slate 50
-  textMutedLight: "#64748B",  // Slate 500
-  textMutedDark: "#94A3B8",   // Slate 400
-  
+  textMainLight: "#111827", // Slate 900
+  textMainDark: "#F8FAFC", // Slate 50
+  textMutedLight: "#64748B", // Slate 500
+  textMutedDark: "#94A3B8", // Slate 400
+
   // Accents
   accentBlue: "#3B82F6",
   accentOrange: "#F59E0B",
@@ -60,6 +60,8 @@ export const Colors = {
     isDark: true,
   },
 };
+
+export type Theme = typeof Colors.light;
 
 export function useThemeColor(
   props: { light?: string; dark?: string },

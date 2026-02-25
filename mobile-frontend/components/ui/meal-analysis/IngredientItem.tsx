@@ -1,11 +1,13 @@
 import { ICON_FAMILY_MAP, resolveIcon } from "@/constants/ingredientIcons";
 import { Ingredient } from "@/utils/api";
+import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface IngredientCardProps {
   ingredient: Ingredient;
   theme: any;
+  onEdit?: (ingredient: Ingredient) => void;
 }
 
 const IngredientIcon = ({
@@ -20,7 +22,7 @@ const IngredientIcon = ({
   return <IconComponent name={entry.name} size={22} color={color} />;
 };
 
-export const IngredientCard = ({ ingredient, theme }: IngredientCardProps) => (
+export const IngredientCard = ({ ingredient, theme, onEdit }: IngredientCardProps) => (
   <View
     style={[
       styles.ingredientCard,
@@ -58,6 +60,15 @@ export const IngredientCard = ({ ingredient, theme }: IngredientCardProps) => (
         kcal
       </Text>
     </View>
+    {onEdit ? (
+      <TouchableOpacity
+        onPress={() => onEdit(ingredient)}
+        hitSlop={12}
+        style={styles.editButton}
+      >
+        <MaterialIcons name="edit" size={16} color={theme.textMuted} />
+      </TouchableOpacity>
+    ) : null}
   </View>
 );
 
@@ -97,5 +108,9 @@ const styles = StyleSheet.create({
   },
   ingredientCalLabel: {
     fontSize: 11,
+  },
+  editButton: {
+    padding: 4,
+    marginLeft: 4,
   },
 });

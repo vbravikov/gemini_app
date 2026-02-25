@@ -1,7 +1,7 @@
-import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { useTheme } from "@/constants/theme";
 import { CollapsibleHeader } from "@/components/ui/base/CollapsibleHeader";
 import { MealLog, useMealLogs } from "@/hooks/useMealLogs";
+import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
@@ -343,6 +343,7 @@ export default function HomeScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { logs, getDailyTotals } = useMealLogs();
+  const { goals } = useCustomDailyGoals();
 
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
@@ -355,9 +356,9 @@ export default function HomeScreen() {
   const totals = useMemo(() => getDailyTotals(today), [today, getDailyTotals]);
   const recentLogs = useMemo(() => logs.slice(0, MAX_RECENT), [logs]);
 
-  const calorieProgress = totals.calories / DEFAULT_DAILY_GOALS.calories_kcal;
+  const calorieProgress = totals.calories / goals.calories_kcal;
   const caloriesRemaining = Math.max(
-    DEFAULT_DAILY_GOALS.calories_kcal - totals.calories,
+    goals.calories_kcal - totals.calories,
     0,
   );
 
@@ -397,7 +398,7 @@ export default function HomeScreen() {
           <CalorieRing
             progress={calorieProgress}
             calories={totals.calories}
-            goal={DEFAULT_DAILY_GOALS.calories_kcal}
+            goal={goals.calories_kcal}
             tint={theme.tint}
             textColor={theme.text}
             mutedColor={theme.textMuted}
@@ -406,7 +407,7 @@ export default function HomeScreen() {
             <MacroPill
               label="Protein"
               value={totals.protein}
-              goal={DEFAULT_DAILY_GOALS.protein_g}
+              goal={goals.protein_g}
               color="#3b82f6"
               textColor={theme.text}
               mutedColor={theme.textMuted}
@@ -415,7 +416,7 @@ export default function HomeScreen() {
             <MacroPill
               label="Carbs"
               value={totals.carbs}
-              goal={DEFAULT_DAILY_GOALS.carbs_g}
+              goal={goals.carbs_g}
               color="#f97316"
               textColor={theme.text}
               mutedColor={theme.textMuted}
@@ -424,7 +425,7 @@ export default function HomeScreen() {
             <MacroPill
               label="Fats"
               value={totals.fats}
-              goal={DEFAULT_DAILY_GOALS.fats_g}
+              goal={goals.fats_g}
               color="#eab308"
               textColor={theme.text}
               mutedColor={theme.textMuted}
@@ -446,7 +447,7 @@ export default function HomeScreen() {
         <Animated.View entering={FadeInDown.delay(180)}>
           <WeekChart
             logs={logs}
-            goal={DEFAULT_DAILY_GOALS.calories_kcal}
+            goal={goals.calories_kcal}
             tint={theme.tint}
             textColor={theme.text}
             mutedColor={theme.textMuted}
@@ -498,6 +499,7 @@ export default function HomeScreen() {
     [
       theme,
       totals,
+      goals,
       calorieProgress,
       caloriesRemaining,
       recentLogs.length,

@@ -19,13 +19,17 @@ import {
 import { useTheme } from "@/constants/theme";
 import { useMealLogs } from "@/hooks/useMealLogs";
 import { NutritionData } from "@/utils/api";
+import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
+import type { DailyGoals } from "@/hooks/useDailyGoals";
 
 const DetailsTab = ({
   nutrition,
   theme,
+  goals,
 }: {
   nutrition: NutritionData;
   theme: any;
+  goals: DailyGoals;
 }) => (
   <View style={styles.tabContent}>
     <PortionWeightCard
@@ -37,7 +41,7 @@ const DetailsTab = ({
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Nutritional Overview
     </Text>
-    <NutritionalOverviewCard nutrition={nutrition} theme={theme} />
+    <NutritionalOverviewCard nutrition={nutrition} theme={theme} goals={goals} />
 
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Macronutrients
@@ -64,6 +68,7 @@ const LogDetails = () => {
   const router = useRouter();
   const theme = useTheme();
   const { logs, deleteLog } = useMealLogs();
+  const { goals } = useCustomDailyGoals();
 
   const log = useMemo(() => logs.find((l) => l.id === id), [logs, id]);
 
@@ -112,7 +117,7 @@ const LogDetails = () => {
           </View>
         ),
         contentComponent: (
-          <MealSummaryTab nutrition={log.nutrition} theme={theme} />
+          <MealSummaryTab nutrition={log.nutrition} theme={theme} goals={goals} />
         ),
       },
       {
@@ -139,11 +144,11 @@ const LogDetails = () => {
           </View>
         ),
         contentComponent: (
-          <DetailsTab nutrition={log.nutrition} theme={theme} />
+          <DetailsTab nutrition={log.nutrition} theme={theme} goals={goals} />
         ),
       },
     ];
-  }, [log, theme]);
+  }, [log, theme, goals]);
 
   if (!log) {
     return (

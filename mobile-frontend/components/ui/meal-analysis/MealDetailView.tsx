@@ -60,7 +60,7 @@ interface MealDetailViewProps {
   imageUri: string;
   heroInfo: HeroInfo;
   tabs: Tab[];
-  actions: [ActionButton, ActionButton];
+  actions: ActionButton[];
   /** Extra bottom padding for the scroll content. Defaults to 180. */
   scrollPaddingBottom?: number;
   /** Inline backgroundColor override on contentContainerStyle. */
@@ -117,8 +117,6 @@ export const MealDetailView = ({
     );
     return { transform: [{ translateY }, { scale }], opacity };
   });
-
-  const [leftAction, rightAction] = actions;
 
   return (
     <>
@@ -184,12 +182,16 @@ export const MealDetailView = ({
       <BlurView
         intensity={30}
         tint={isDark ? "dark" : "light"}
-        style={[styles.bottomActionBar, { borderTopColor: actionBarBorderColor }]}
+        style={[
+          styles.bottomActionBar,
+          { borderTopColor: actionBarBorderColor },
+        ]}
         experimentalBlurMethod="dimezisBlurView"
       >
         <View style={styles.bottomActionContent}>
-          <ActionBtn action={leftAction} />
-          <ActionBtn action={rightAction} />
+          {actions.map((action, index) => (
+            <ActionBtn key={index} action={action} />
+          ))}
         </View>
       </BlurView>
     </>
@@ -215,10 +217,7 @@ const ActionBtn = ({ action }: { action: ActionButton }) => {
     >
       {action.icon}
       <Text
-        style={[
-          styles.actionButtonText,
-          { color: action.color ?? "#fff" },
-        ]}
+        style={[styles.actionButtonText, { color: action.color ?? "#fff" }]}
       >
         {action.label}
       </Text>

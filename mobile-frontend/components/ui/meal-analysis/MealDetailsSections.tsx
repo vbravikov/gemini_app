@@ -1,16 +1,30 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { NutritionData } from "../../../utils/api";
 import { DEFAULT_DAILY_GOALS } from "../../../constants/nutrition";
+import { DailyGoals } from "../../../hooks/useDailyGoals";
 
 type Verdict = NonNullable<NutritionData["diet_verdict"]>;
 
-const BADGE_CONFIG: Record<Verdict, { label: string; color: string; bg: string; bgDark: string }> = {
-  excellent: { label: "Excellent",  color: "#16a34a", bg: "#dcfce7", bgDark: "#052e16" },
-  good:      { label: "Good",       color: "#0d9488", bg: "#ccfbf1", bgDark: "#042f2e" },
-  moderate:  { label: "Moderate",   color: "#d97706", bg: "#fef3c7", bgDark: "#2d1a00" },
-  limit:     { label: "Limit",      color: "#dc2626", bg: "#fee2e2", bgDark: "#2d0a0a" },
+const BADGE_CONFIG: Record<
+  Verdict,
+  { label: string; color: string; bg: string; bgDark: string }
+> = {
+  excellent: {
+    label: "Excellent",
+    color: "#16a34a",
+    bg: "#dcfce7",
+    bgDark: "#052e16",
+  },
+  good: { label: "Good", color: "#0d9488", bg: "#ccfbf1", bgDark: "#042f2e" },
+  moderate: {
+    label: "Moderate",
+    color: "#d97706",
+    bg: "#fef3c7",
+    bgDark: "#2d1a00",
+  },
+  limit: { label: "Limit", color: "#dc2626", bg: "#fee2e2", bgDark: "#2d0a0a" },
 };
 
 interface CardProps {
@@ -20,59 +34,73 @@ interface CardProps {
 interface PortionWeightCardProps extends CardProps {
   weight: number;
   label?: string;
+  onPress?: () => void;
 }
 
 export const PortionWeightCard = ({
   weight,
   theme,
   label = "Approx. Weight",
+  onPress,
 }: PortionWeightCardProps) => (
-  <View
-    style={[
-      styles.detailCard,
-      {
-        backgroundColor: theme.card,
-        borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-      },
-    ]}
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={onPress ? 0.75 : 1}
+    disabled={!onPress}
   >
-    <MaterialIcons name="scale" size={24} color={theme.tint} />
-    <Text style={[styles.detailValue, { color: theme.text, marginLeft: 12 }]}>
-      {weight}g
-    </Text>
-    <Text
+    <View
       style={[
-        styles.detailLabel,
-        { color: theme.textMuted, marginLeft: "auto" },
+        styles.detailCard,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+          marginBottom: onPress ? 8 : 24,
+        },
       ]}
     >
-      {label}
-    </Text>
-  </View>
+      <MaterialIcons name="scale" size={24} color={theme.tint} />
+      <Text style={[styles.detailValue, { color: theme.text, marginLeft: 12 }]}>
+        {weight}g
+      </Text>
+      <Text
+        style={[
+          styles.detailLabel,
+          { color: theme.textMuted, marginLeft: "auto" },
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+    {onPress && (
+      <View style={[styles.editHint, { marginTop: 4, marginBottom: 24 }]}>
+        <MaterialIcons name="edit" size={12} color={theme.textMuted} />
+        <Text style={[styles.editHintText, { color: theme.textMuted }]}>
+          Tap to adjust weight
+        </Text>
+      </View>
+    )}
+  </TouchableOpacity>
 );
 
 interface NutritionalOverviewCardProps extends CardProps {
   nutrition: NutritionData;
   showBadge?: boolean;
+  goals?: DailyGoals;
 }
 
 export const NutritionalOverviewCard = ({
   nutrition,
   theme,
   showBadge = false,
+  goals: goalsProp,
 }: NutritionalOverviewCardProps) => {
+  const goals = goalsProp ?? DEFAULT_DAILY_GOALS;
   const proteinPercent = Math.min(
-    (nutrition.protein_g / DEFAULT_DAILY_GOALS.protein_g) * 100,
-    100
+    (nutrition.protein_g / goals.protein_g) * 100,
+    100,
   );
-  const carbsPercent = Math.min(
-    (nutrition.carbs_g / DEFAULT_DAILY_GOALS.carbs_g) * 100,
-    100
-  );
-  const fatsPercent = Math.min(
-    (nutrition.fats_g / DEFAULT_DAILY_GOALS.fats_g) * 100,
-    100
-  );
+  const carbsPercent = Math.min((nutrition.carbs_g / goals.carbs_g) * 100, 100);
+  const fatsPercent = Math.min((nutrition.fats_g / goals.fats_g) * 100, 100);
 
   const verdict = nutrition.diet_verdict ?? "moderate";
   const badge = BADGE_CONFIG[verdict];
@@ -112,12 +140,7 @@ export const NutritionalOverviewCard = ({
               },
             ]}
           >
-            <Text
-              style={[
-                styles.goalBadgeText,
-                { color: badge.color },
-              ]}
-            >
+            <Text style={[styles.goalBadgeText, { color: badge.color }]}>
               {badge.label}
             </Text>
           </View>
@@ -135,7 +158,7 @@ export const NutritionalOverviewCard = ({
             <Text style={[styles.macroProgressValue, { color: theme.text }]}>
               {nutrition.protein_g}g{" "}
               <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                / {DEFAULT_DAILY_GOALS.protein_g}g
+                / {goals.protein_g}g
               </Text>
             </Text>
           </View>
@@ -163,7 +186,7 @@ export const NutritionalOverviewCard = ({
             <Text style={[styles.macroProgressValue, { color: theme.text }]}>
               {nutrition.carbs_g}g{" "}
               <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                / {DEFAULT_DAILY_GOALS.carbs_g}g
+                / {goals.carbs_g}g
               </Text>
             </Text>
           </View>
@@ -191,7 +214,7 @@ export const NutritionalOverviewCard = ({
             <Text style={[styles.macroProgressValue, { color: theme.text }]}>
               {nutrition.fats_g}g{" "}
               <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                / {DEFAULT_DAILY_GOALS.fats_g}g
+                / {goals.fats_g}g
               </Text>
             </Text>
           </View>
@@ -245,40 +268,56 @@ const MacroItem = ({ label, value, icon, color, theme }: MacroItemProps) => (
 export const MacronutrientsGrid = ({
   nutrition,
   theme,
+  onPress,
 }: {
   nutrition: NutritionData;
   theme: any;
+  onPress?: () => void;
 }) => (
-  <View style={styles.macroGrid}>
-    <MacroItem
-      label="Protein"
-      value={`${nutrition.protein_g}g`}
-      icon="fitness-center"
-      color="#3b82f6"
-      theme={theme}
-    />
-    <MacroItem
-      label="Carbs"
-      value={`${nutrition.carbs_g}g`}
-      icon="rice-bowl"
-      color="#f97316"
-      theme={theme}
-    />
-    <MacroItem
-      label="Fats"
-      value={`${nutrition.fats_g}g`}
-      icon="water-drop"
-      color="#eab308"
-      theme={theme}
-    />
-    <MacroItem
-      label="Calories"
-      value={`${nutrition.calories_kcal}`}
-      icon="local-fire-department"
-      color={theme.tint}
-      theme={theme}
-    />
-  </View>
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={onPress ? 0.75 : 1}
+    disabled={!onPress}
+  >
+    <View style={styles.macroGrid}>
+      <MacroItem
+        label="Protein"
+        value={`${nutrition.protein_g}g`}
+        icon="fitness-center"
+        color="#3b82f6"
+        theme={theme}
+      />
+      <MacroItem
+        label="Carbs"
+        value={`${nutrition.carbs_g}g`}
+        icon="rice-bowl"
+        color="#f97316"
+        theme={theme}
+      />
+      <MacroItem
+        label="Fats"
+        value={`${nutrition.fats_g}g`}
+        icon="water-drop"
+        color="#eab308"
+        theme={theme}
+      />
+      <MacroItem
+        label="Calories"
+        value={`${nutrition.calories_kcal}`}
+        icon="local-fire-department"
+        color={theme.tint}
+        theme={theme}
+      />
+    </View>
+    {onPress && (
+      <View style={styles.editHint}>
+        <MaterialIcons name="edit" size={12} color={theme.textMuted} />
+        <Text style={[styles.editHintText, { color: theme.textMuted }]}>
+          Tap to adjust macros
+        </Text>
+      </View>
+    )}
+  </TouchableOpacity>
 );
 
 const styles = StyleSheet.create({
@@ -397,6 +436,18 @@ const styles = StyleSheet.create({
   macroLabelText: {
     fontSize: 12,
     marginTop: 2,
+    fontWeight: "500",
+  },
+  editHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    marginTop: -16,
+    marginBottom: 24,
+  },
+  editHintText: {
+    fontSize: 12,
     fontWeight: "500",
   },
 });

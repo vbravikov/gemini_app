@@ -1,7 +1,7 @@
 import { CollapsibleHeader } from "@/components/ui/base/CollapsibleHeader";
-import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { useTheme } from "@/constants/theme";
 import { MealLog, useMealLogs } from "@/hooks/useMealLogs";
+import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -176,6 +176,7 @@ export default function LogsScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { getLogsForDate, getDailyTotals } = useMealLogs();
+  const { goals } = useCustomDailyGoals();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const scrollY = useSharedValue(0);
@@ -190,7 +191,7 @@ export default function LogsScreen() {
   );
 
   const calorieProgress = Math.min(
-    totals.calories / DEFAULT_DAILY_GOALS.calories_kcal,
+    totals.calories / goals.calories_kcal,
     1,
   );
 
@@ -352,7 +353,7 @@ export default function LogsScreen() {
         </View>
       </View>
     ),
-    [theme, totals, calorieProgress, selectedDate, dayLogs.length, router],
+    [theme, totals, goals, calorieProgress, selectedDate, dayLogs.length, router],
   );
 
   const listEmpty = useMemo(

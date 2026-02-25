@@ -88,6 +88,15 @@ export default function RootLayout() {
               animation: "slide_from_bottom",
             }}
           />
+          <Stack.Screen
+            name="edit-goals"
+            options={{
+              title: "Edit Daily Goals",
+              presentation: "modal",
+              animation: "slide_from_bottom",
+              headerTintColor: colors.isDark ? "#fff" : "rgba(0,0,0,0.8)",
+            }}
+          />
         </Stack>
       </GestureHandlerRootView>
     </ThemeProvider>

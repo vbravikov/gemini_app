@@ -1,8 +1,42 @@
-import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { NutritionData } from "@/utils/api";
+import { DailyGoals } from "@/hooks/useDailyGoals";
+import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
+
+// ---------------------------------------------------------------------------
+// Confidence banner config (low / medium only — high needs no warning)
+// ---------------------------------------------------------------------------
+
+const CONFIDENCE_BANNER: Record<
+  "low" | "medium",
+  {
+    icon: keyof typeof MaterialIcons.glyphMap;
+    color: string;
+    bg: string;
+    bgDark: string;
+    title: string;
+    body: string;
+  }
+> = {
+  medium: {
+    icon: "info",
+    color: "#d97706",
+    bg: "#fef3c7",
+    bgDark: "#2d1a00",
+    title: "Moderate confidence",
+    body: "Portion sizes and exact macros may be slightly off — treat these as estimates.",
+  },
+  low: {
+    icon: "warning",
+    color: "#dc2626",
+    bg: "#fee2e2",
+    bgDark: "#2d0a0a",
+    title: "Low confidence",
+    body: "The AI had difficulty identifying this meal. These nutrition values are rough estimates and may be significantly inaccurate.",
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Verdict config
@@ -119,15 +153,39 @@ const macroStyles = StyleSheet.create({
 interface MealSummaryTabProps {
   nutrition: NutritionData;
   theme: any;
+  goals?: DailyGoals;
 }
 
-export const MealSummaryTab = ({ nutrition, theme }: MealSummaryTabProps) => {
+export const MealSummaryTab = ({ nutrition, theme, goals: goalsProp }: MealSummaryTabProps) => {
+  const goals = goalsProp ?? DEFAULT_DAILY_GOALS;
   const verdict = nutrition.diet_verdict ?? "moderate";
   const cfg = VERDICT_CONFIG[verdict];
   const bgColor = theme.isDark ? cfg.bgDark : cfg.bg;
 
+  const confidence = nutrition.confidence ?? "high";
+  const bannerCfg = confidence !== "high" ? CONFIDENCE_BANNER[confidence] : null;
+
   return (
     <View style={styles.container}>
+      {/* ---- Confidence warning banner (medium / low only) ---- */}
+      {bannerCfg && (
+        <View
+          style={[
+            styles.confidenceBanner,
+            { backgroundColor: theme.isDark ? bannerCfg.bgDark : bannerCfg.bg },
+          ]}
+        >
+          <MaterialIcons name={bannerCfg.icon} size={20} color={bannerCfg.color} style={{ marginTop: 1 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.bannerTitle, { color: bannerCfg.color }]}>
+              {bannerCfg.title}
+            </Text>
+            <Text style={[styles.bannerBody, { color: theme.isDark ? "#e2e8f0" : "#374151" }]}>
+              {bannerCfg.body}
+            </Text>
+          </View>
+        </View>
+      )}
       {/* ---- Verdict card ---- */}
       <View style={[styles.verdictCard, { backgroundColor: bgColor }]}>
         <View style={styles.verdictHeader}>
@@ -160,7 +218,7 @@ export const MealSummaryTab = ({ nutrition, theme }: MealSummaryTabProps) => {
           <MacroRow
             label="Calories"
             value={nutrition.calories_kcal}
-            goal={DEFAULT_DAILY_GOALS.calories_kcal}
+            goal={goals.calories_kcal}
             unit=" kcal"
             color={theme.tint}
             theme={theme}
@@ -168,7 +226,7 @@ export const MealSummaryTab = ({ nutrition, theme }: MealSummaryTabProps) => {
           <MacroRow
             label="Protein"
             value={nutrition.protein_g}
-            goal={DEFAULT_DAILY_GOALS.protein_g}
+            goal={goals.protein_g}
             unit="g"
             color="#3b82f6"
             theme={theme}
@@ -176,7 +234,7 @@ export const MealSummaryTab = ({ nutrition, theme }: MealSummaryTabProps) => {
           <MacroRow
             label="Carbs"
             value={nutrition.carbs_g}
-            goal={DEFAULT_DAILY_GOALS.carbs_g}
+            goal={goals.carbs_g}
             unit="g"
             color="#f97316"
             theme={theme}
@@ -184,7 +242,7 @@ export const MealSummaryTab = ({ nutrition, theme }: MealSummaryTabProps) => {
           <MacroRow
             label="Fats"
             value={nutrition.fats_g}
-            goal={DEFAULT_DAILY_GOALS.fats_g}
+            goal={goals.fats_g}
             unit="g"
             color="#eab308"
             theme={theme}
@@ -203,6 +261,24 @@ const styles = StyleSheet.create({
   container: {
     paddingBottom: 40,
     gap: 16,
+  },
+  confidenceBanner: {
+    borderRadius: 16,
+    borderCurve: "continuous",
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  bannerTitle: {
+    fontSize: 14,
+    fontFamily: "semibold",
+    marginBottom: 3,
+  },
+  bannerBody: {
+    fontSize: 13,
+    fontFamily: "medium",
+    lineHeight: 19,
   },
   verdictCard: {
     borderRadius: 24,

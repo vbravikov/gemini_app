@@ -6,6 +6,10 @@ import { ICON_KEYS } from "@/constants/ingredientIcons";
  * Dynamically determines the backend URL.
  */
 const getBackendUrl = () => {
+  const prod_url = process.env.EXPO_PUBLIC_BACKEND_URL;
+  if (prod_url) {
+    return prod_url;
+  }
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri && Platform.OS !== "android") {
     const host = hostUri!.split(":")[0];

@@ -1,4 +1,3 @@
-import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { useTheme } from "@/constants/theme";
 import { useMealLogs } from "@/hooks/useMealLogs";
 import {
@@ -6,8 +5,10 @@ import {
   DietGoal,
   useDietPreferences,
 } from "@/hooks/useDietPreferences";
+import { useCustomDailyGoals, DIET_GOAL_PRESETS } from "@/hooks/useDailyGoals";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import { Link } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
@@ -184,13 +185,26 @@ function GoalTile({
 export default function ProfileScreen() {
   const theme = useTheme();
   const { logs } = useMealLogs();
-  const { dietGoal, setDietGoal } = useDietPreferences();
+  const { dietGoal, goalConfig, setDietGoal } = useDietPreferences();
+  const { goals, isCustom, applyPreset, resetToDefault } = useCustomDailyGoals();
 
   const totalCalories = logs.reduce((s, l) => s + l.nutrition.calories_kcal, 0);
   const streak = calcStreak(logs);
 
   const handleGoalTilePress = (key: DietGoal) => {
-    setDietGoal(dietGoal === key ? null : key);
+    const next = dietGoal === key ? null : key;
+    setDietGoal(next);
+    if (next !== null) {
+      // Only auto-apply the preset if the user hasn't manually customised their goals
+      if (!isCustom) {
+        applyPreset(DIET_GOAL_PRESETS[next]);
+      }
+    } else {
+      // Diet goal cleared — revert goals to default (unless manually customised)
+      if (!isCustom) {
+        resetToDefault();
+      }
+    }
   };
 
   return (
@@ -269,31 +283,60 @@ export default function ProfileScreen() {
           },
         ]}
       >
-        <SectionHeader title="DAILY GOALS" theme={theme} />
+        <View style={styles.cardHeaderRow}>
+          <SectionHeader title="DAILY GOALS" theme={theme} />
+          <Link href={"../edit-goals" as any} asChild>
+            <TouchableOpacity style={styles.editButton} hitSlop={8}>
+              <Text style={[styles.editButtonText, { color: theme.tint }]}>
+                Edit
+              </Text>
+              <MaterialIcons
+                name="chevron-right"
+                size={16}
+                color={theme.tint}
+              />
+            </TouchableOpacity>
+          </Link>
+        </View>
+        {(isCustom || (dietGoal !== null && !isCustom)) && (
+          <View
+            style={[
+              styles.customBadge,
+              { backgroundColor: theme.isDark ? "#0f2d1f" : "#f0fdf4" },
+            ]}
+          >
+            <MaterialIcons name={isCustom ? "tune" : "auto-awesome"} size={12} color={theme.tint} />
+            <Text style={[styles.customBadgeText, { color: theme.tint }]}>
+              {isCustom
+                ? "Custom goals active"
+                : `${goalConfig?.label ?? ""} preset`}
+            </Text>
+          </View>
+        )}
         <GoalRow
           label="Calories"
-          value={DEFAULT_DAILY_GOALS.calories_kcal}
+          value={goals.calories_kcal}
           unit=" kcal"
           color={theme.tint}
           theme={theme}
         />
         <GoalRow
           label="Protein"
-          value={DEFAULT_DAILY_GOALS.protein_g}
+          value={goals.protein_g}
           unit="g"
           color="#3b82f6"
           theme={theme}
         />
         <GoalRow
           label="Carbs"
-          value={DEFAULT_DAILY_GOALS.carbs_g}
+          value={goals.carbs_g}
           unit="g"
           color="#f97316"
           theme={theme}
         />
         <GoalRow
           label="Fats"
-          value={DEFAULT_DAILY_GOALS.fats_g}
+          value={goals.fats_g}
           unit="g"
           color="#eab308"
           theme={theme}
@@ -407,6 +450,36 @@ const styles = StyleSheet.create({
     fontFamily: "semibold",
     letterSpacing: 1.5,
     marginBottom: 16,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingVertical: 2,
+  },
+  editButtonText: {
+    fontSize: 13,
+    fontFamily: "semibold",
+  },
+  customBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  customBadgeText: {
+    fontSize: 11,
+    fontFamily: "semibold",
   },
   goalRow: {
     flexDirection: "row",

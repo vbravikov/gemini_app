@@ -6,6 +6,12 @@ import {
   NutritionalOverviewCard,
   PortionWeightCard,
 } from "@/components/ui/meal-analysis/MealDetailsSections";
+import {
+  AddIngredientSheet,
+  IngredientEditSheet,
+  MacroEditSheet,
+  WeightEditSheet,
+} from "@/components/ui/meal-analysis/IngredientSheets";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,19 +24,76 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTheme } from "@/constants/theme";
-import { AnalysisResponse, analyzeImage, NutritionData } from "@/utils/api";
+import {
+  AnalysisResponse,
+  analyzeImage,
+  Ingredient,
+  NutritionData,
+} from "@/utils/api";
 import { useMealLogs } from "@/hooks/useMealLogs";
 import { useDietPreferences } from "@/hooks/useDietPreferences";
+import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
+import type { DailyGoals } from "@/hooks/useDailyGoals";
+
+// ---------------------------------------------------------------------------
+// Confidence config
+// ---------------------------------------------------------------------------
+
+const CONFIDENCE_CONFIG = {
+  high: {
+    label: "High confidence",
+    icon: "verified" as const,
+    color: "#16a34a",
+    pillBg: "rgba(22,163,74,0.18)",
+    bannerBg: null, // no banner for high confidence
+    bannerBgDark: null,
+    bannerText: null,
+  },
+  medium: {
+    label: "Medium confidence",
+    icon: "info" as const,
+    color: "#d97706",
+    pillBg: "rgba(217,119,6,0.18)",
+    bannerBg: "#fef3c7",
+    bannerBgDark: "#2d1a00",
+    bannerText:
+      "The AI is moderately confident in these values. Portion sizes and exact macros may be slightly off — treat them as estimates.",
+  },
+  low: {
+    label: "Low confidence",
+    icon: "warning" as const,
+    color: "#dc2626",
+    pillBg: "rgba(220,38,38,0.18)",
+    bannerBg: "#fee2e2",
+    bannerBgDark: "#2d0a0a",
+    bannerText:
+      "The AI had difficulty identifying this meal clearly. The nutrition values shown are rough estimates and may be significantly inaccurate.",
+  },
+} as const;
 
 const DetailsTab = ({
   nutrition,
   theme,
+  goals,
+  onEditIngredient,
+  onAddIngredient,
+  onEditMacros,
+  onEditWeight,
 }: {
   nutrition: NutritionData;
   theme: any;
+  goals: DailyGoals;
+  onEditIngredient: (ingredient: Ingredient) => void;
+  onAddIngredient: () => void;
+  onEditMacros: () => void;
+  onEditWeight: () => void;
 }) => (
   <View style={styles.tabContent}>
-    <PortionWeightCard weight={nutrition.portion_size_g} theme={theme} />
+    <PortionWeightCard
+      weight={nutrition.portion_size_g}
+      theme={theme}
+      onPress={onEditWeight}
+    />
 
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Nutritional Overview
@@ -39,31 +102,35 @@ const DetailsTab = ({
       nutrition={nutrition}
       theme={theme}
       showBadge={true}
+      goals={goals}
     />
 
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Macronutrients
     </Text>
-    <MacronutrientsGrid nutrition={nutrition} theme={theme} />
+    <MacronutrientsGrid
+      nutrition={nutrition}
+      theme={theme}
+      onPress={onEditMacros}
+    />
 
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Identified Ingredients
     </Text>
-    <View style={styles.ingredientsHeader}>
-      <TouchableOpacity style={{ marginLeft: "auto", marginBottom: 12 }}>
-        <Text style={[styles.adjustButton, { color: theme.tint }]}>Adjust</Text>
-      </TouchableOpacity>
-    </View>
     <View style={styles.ingredientsList}>
       {nutrition.ingredients.map((ingredient, index) => (
         <IngredientCard
           key={index}
           ingredient={ingredient}
           theme={theme}
+          onEdit={onEditIngredient}
         />
       ))}
     </View>
-    <TouchableOpacity style={styles.addIngredientButton}>
+    <TouchableOpacity
+      style={styles.addIngredientButton}
+      onPress={onAddIngredient}
+    >
       <MaterialIcons
         name="add"
         size={14}
@@ -83,31 +150,55 @@ const MealInfo = () => {
   const theme = useTheme();
   const { addLog, getLogsForDate } = useMealLogs();
   const { goalConfig } = useDietPreferences();
+  const { goals } = useCustomDailyGoals();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAnalysis = useCallback(async (signal?: AbortSignal) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const todaysMeals = getLogsForDate(new Date()).map(
-        (l) => l.nutrition.dish_name,
-      );
-      const context = {
-        dietGoalHint: goalConfig?.promptHint,
-        todaysMeals,
-      };
-      const response = await analyzeImage(params.photoUri, signal, undefined, context);
-      setData(response);
-    } catch (err: any) {
-      if (err?.name === "AbortError") return; // screen unmounted — ignore
-      console.error(err);
-      setError("Failed to analyze image. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [params.photoUri, goalConfig, getLogsForDate]);
+  // Ingredient editing state — lifted so both sheets and DetailsTab share it
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(
+    null,
+  );
+  const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showMacroSheet, setShowMacroSheet] = useState(false);
+  const [showWeightSheet, setShowWeightSheet] = useState(false);
+  const [macroOverride, setMacroOverride] = useState<Pick<
+    NutritionData,
+    "protein_g" | "carbs_g" | "fats_g"
+  > | null>(null);
+  const [weightOverride, setWeightOverride] = useState<number | null>(null);
+
+  const handleAnalysis = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const todaysMeals = getLogsForDate(new Date()).map(
+          (l) => l.nutrition.dish_name,
+        );
+        const context = {
+          dietGoalHint: goalConfig?.promptHint,
+          todaysMeals,
+        };
+        const response = await analyzeImage(
+          params.photoUri,
+          signal,
+          undefined,
+          context,
+        );
+        setData(response);
+        setIngredients(response?.nutrition_data?.ingredients ?? []);
+      } catch (err: any) {
+        if (err?.name === "AbortError") return; // screen unmounted — ignore
+        console.error(err);
+        setError("Failed to analyze image. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [params.photoUri, goalConfig, getLogsForDate],
+  );
 
   useEffect(() => {
     if (!params.photoUri) return;
@@ -116,15 +207,68 @@ const MealInfo = () => {
     return () => controller.abort();
   }, [params.photoUri, handleAnalysis]);
 
+  // Derived nutrition — recalculate calories & weight from live ingredient list
+  const derivedNutrition = useMemo((): NutritionData | null => {
+    if (!data?.nutrition_data) return null;
+    const totalCals = ingredients.reduce((s, i) => s + i.calories_kcal, 0);
+    const totalWeight = ingredients.reduce((s, i) => s + i.weight_g, 0);
+    return {
+      ...data.nutrition_data,
+      ingredients,
+      calories_kcal: Math.round(totalCals),
+      portion_size_g: weightOverride ?? Math.round(totalWeight),
+      protein_g: macroOverride?.protein_g ?? data.nutrition_data.protein_g,
+      carbs_g: macroOverride?.carbs_g ?? data.nutrition_data.carbs_g,
+      fats_g: macroOverride?.fats_g ?? data.nutrition_data.fats_g,
+    };
+  }, [data, ingredients, macroOverride, weightOverride]);
+
+  const handleSaveMacros = useCallback(
+    (macros: Pick<NutritionData, "protein_g" | "carbs_g" | "fats_g">) => {
+      setMacroOverride(macros);
+      setShowMacroSheet(false);
+    },
+    [],
+  );
+
+  const handleSaveWeight = useCallback((w: number) => {
+    setWeightOverride(w);
+    setShowWeightSheet(false);
+  }, []);
+
+  const handleSaveIngredient = useCallback(
+    (updated: Ingredient) => {
+      setIngredients((prev) =>
+        prev.map((ing) => (ing === editingIngredient ? updated : ing)),
+      );
+      setEditingIngredient(null);
+    },
+    [editingIngredient],
+  );
+
+  const handleDeleteIngredient = useCallback((ingredient: Ingredient) => {
+    setIngredients((prev) => prev.filter((ing) => ing !== ingredient));
+    setEditingIngredient(null);
+  }, []);
+
+  const handleAddIngredient = useCallback((ingredient: Ingredient) => {
+    setIngredients((prev) => [...prev, ingredient]);
+    setShowAddSheet(false);
+  }, []);
+
   const onAddToLog = useCallback(async () => {
-    if (data && params.photoUri) {
-      await addLog(data, params.photoUri);
+    if (data && params.photoUri && derivedNutrition) {
+      const updatedData: AnalysisResponse = {
+        ...data,
+        nutrition_data: derivedNutrition,
+      };
+      await addLog(updatedData, params.photoUri);
       router.replace("/logs");
     }
-  }, [data, params.photoUri, addLog, router]);
+  }, [data, derivedNutrition, params.photoUri, addLog, router]);
 
   const tabs = useMemo(() => {
-    if (!data) return [];
+    if (!derivedNutrition) return [];
     return [
       {
         id: "summary",
@@ -149,9 +293,13 @@ const MealInfo = () => {
             </Text>
           </View>
         ),
-        contentComponent: data.nutrition_data ? (
-          <MealSummaryTab nutrition={data.nutrition_data} theme={theme} />
-        ) : null,
+        contentComponent: (
+          <MealSummaryTab
+            nutrition={derivedNutrition}
+            theme={theme}
+            goals={goals}
+          />
+        ),
       },
       {
         id: "details",
@@ -176,12 +324,20 @@ const MealInfo = () => {
             </Text>
           </View>
         ),
-        contentComponent: data.nutrition_data ? (
-          <DetailsTab nutrition={data.nutrition_data} theme={theme} />
-        ) : null,
+        contentComponent: (
+          <DetailsTab
+            nutrition={derivedNutrition}
+            theme={theme}
+            goals={goals}
+            onEditIngredient={setEditingIngredient}
+            onAddIngredient={() => setShowAddSheet(true)}
+            onEditMacros={() => setShowMacroSheet(true)}
+            onEditWeight={() => setShowWeightSheet(true)}
+          />
+        ),
       },
     ];
-  }, [data, theme]);
+  }, [derivedNutrition, theme, goals]);
 
   if (loading) {
     return (
@@ -226,29 +382,26 @@ const MealInfo = () => {
         imageUri={params.photoUri}
         heroInfo={{
           title: data?.nutrition_data?.dish_name ?? "Meal Detected",
-          subtitle: (
-            <View style={styles.heroConfidence}>
-              <MaterialIcons name="auto-awesome" size={16} color={theme.tint} />
-              <Text style={[styles.heroConfidenceText, { color: "#fff" }]}>
-                AI Confidence:{" "}
-                {data?.nutrition_data?.confidence
-                  ? data.nutrition_data.confidence.charAt(0).toUpperCase() +
-                    data.nutrition_data.confidence.slice(1)
-                  : "Unknown"}
-              </Text>
-            </View>
-          ),
+          subtitle: (() => {
+            const confidence = data?.nutrition_data?.confidence ?? "medium";
+            const cfg =
+              CONFIDENCE_CONFIG[confidence as keyof typeof CONFIDENCE_CONFIG] ??
+              CONFIDENCE_CONFIG.medium;
+            return (
+              <View
+                style={[styles.confidencePill, { backgroundColor: cfg.pillBg }]}
+              >
+                <MaterialIcons name={cfg.icon} size={14} color={cfg.color} />
+                <Text style={[styles.confidencePillText, { color: cfg.color }]}>
+                  {cfg.label}
+                </Text>
+              </View>
+            );
+          })(),
           bottomOffset: 34,
         }}
         tabs={tabs}
         actions={[
-          {
-            label: "Edit",
-            variant: "outlined",
-            backgroundColor: theme.card,
-            color: theme.text,
-            onPress: () => {},
-          },
           {
             label: "Add to Log",
             variant: "filled",
@@ -277,6 +430,46 @@ const MealInfo = () => {
         backgroundColor={theme.background}
         isDark={theme.isDark}
       />
+
+      {/* Ingredient edit sheet */}
+      <IngredientEditSheet
+        visible={editingIngredient !== null}
+        ingredient={editingIngredient}
+        theme={theme}
+        onClose={() => setEditingIngredient(null)}
+        onSave={handleSaveIngredient}
+        onDelete={handleDeleteIngredient}
+      />
+
+      {/* Add ingredient sheet */}
+      <AddIngredientSheet
+        visible={showAddSheet}
+        theme={theme}
+        onClose={() => setShowAddSheet(false)}
+        onAdd={handleAddIngredient}
+      />
+
+      {/* Macro edit sheet */}
+      {derivedNutrition && (
+        <MacroEditSheet
+          visible={showMacroSheet}
+          nutrition={derivedNutrition}
+          theme={theme}
+          onClose={() => setShowMacroSheet(false)}
+          onSave={handleSaveMacros}
+        />
+      )}
+
+      {/* Weight edit sheet */}
+      {derivedNutrition && (
+        <WeightEditSheet
+          visible={showWeightSheet}
+          weight={derivedNutrition.portion_size_g}
+          theme={theme}
+          onClose={() => setShowWeightSheet(false)}
+          onSave={handleSaveWeight}
+        />
+      )}
     </View>
   );
 };
@@ -312,13 +505,17 @@ const styles = StyleSheet.create({
     fontFamily: "bold",
     fontSize: 15,
   },
-  heroConfidence: {
+  confidencePill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    alignSelf: "flex-start",
   },
-  heroConfidenceText: {
-    fontSize: 14,
+  confidencePillText: {
+    fontSize: 13,
     fontFamily: "semibold",
   },
   tabTitleContainer: {
@@ -337,15 +534,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "bold",
     marginBottom: 16,
-  },
-  ingredientsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  adjustButton: {
-    fontSize: 14,
-    fontFamily: "semibold",
   },
   ingredientsList: {
     gap: 12,
