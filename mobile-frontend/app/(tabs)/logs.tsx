@@ -2,11 +2,12 @@ import { CollapsibleHeader } from "@/components/ui/base/CollapsibleHeader";
 import { useTheme } from "@/constants/theme";
 import { MealLog, useMealLogs } from "@/hooks/useMealLogs";
 import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
+import { FoodSearchSheet, FoodSearchSheetHandle } from "@/components/ui/meal-analysis/FoodSearchSheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -178,6 +179,7 @@ export default function LogsScreen() {
   const { getLogsForDate, getDailyTotals } = useMealLogs();
   const { goals } = useCustomDailyGoals();
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const foodSearchSheetRef = useRef<FoodSearchSheetHandle>(null);
 
   const scrollY = useSharedValue(0);
 
@@ -345,7 +347,7 @@ export default function LogsScreen() {
             )}
           </Text>
           <TouchableOpacity
-            onPress={() => router.push("/camera")}
+            onPress={() => foodSearchSheetRef.current?.present()}
             style={[gridStyles.addBtn, { backgroundColor: theme.tint }]}
           >
             <MaterialIcons name="add" size={18} color="#fff" />
@@ -462,6 +464,8 @@ export default function LogsScreen() {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
       />
+
+      <FoodSearchSheet ref={foodSearchSheetRef} />
     </View>
   );
 }

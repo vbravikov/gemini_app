@@ -3,6 +3,8 @@ import json
 import re
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional, List
 from dotenv import load_dotenv
 
 from google import genai
@@ -73,6 +75,80 @@ async def analyze(image: UploadFile = File(...), prompt: str = Form("")):
             "filename": image.filename,
             "content_type": mime,
             "markdown": markdown_summary,
+            "nutrition_data": structured_data,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Text-only analysis endpoint
+# ---------------------------------------------------------------------------
+
+class AnalyzeTextRequest(BaseModel):
+    food_name: str
+    portion_g: float = 100.0
+    diet_goal_hint: Optional[str] = None
+    todays_meals: Optional[List[str]] = None
+    prompt: Optional[str] = None
+
+
+def build_text_prompt(food_name: str, portion_g: float, diet_goal_hint: Optional[str], todays_meals: Optional[List[str]]) -> str:
+    context = ""
+    if diet_goal_hint:
+        context += f"User's diet goal: {diet_goal_hint}\n\n"
+    if todays_meals:
+        context += (
+            f"Meals already eaten today: {', '.join(todays_meals)}. "
+            "Factor this into your verdict and summary_note — mention whether this meal complements or conflicts with what was already eaten, "
+            "and suggest what the user should prioritise in later meals.\n\n"
+        )
+
+    return (
+        f"You are a nutrition assistant. The user is searching for: \"{food_name}\" with a portion size of {portion_g}g.\n\n"
+        + context +
+        "Return a single JSON block delimited by ```json ... ```. Do not include any text outside the JSON block.\n\n"
+        "The JSON must contain these fields:\n"
+        "  'dish_name' (string),\n"
+        "  'portion_size_g' (number),\n"
+        "  'calories_kcal' (number),\n"
+        "  'protein_g' (number),\n"
+        "  'carbs_g' (number),\n"
+        "  'fats_g' (number),\n"
+        "  'confidence' (string) — 'low', 'medium', or 'high',\n"
+        "  'diet_verdict' (string) — 'excellent', 'good', 'moderate', or 'limit',\n"
+        "  'summary_note' (string) — exactly 1-2 plain-text sentences explaining the verdict. No markdown, no emojis.\n"
+        "  'ingredients' (array) — each item has 'name' (string), 'calories_kcal' (number), 'weight_g' (number), 'icon_key' (string).\n"
+        "The sum of ingredient calories_kcal should approximately equal total calories_kcal. "
+        "Return valid JSON only."
+    )
+
+
+@app.post("/analyze-text")
+async def analyze_text(body: AnalyzeTextRequest):
+    try:
+        prompt = body.prompt.strip() if body.prompt and body.prompt.strip() else build_text_prompt(
+            body.food_name,
+            body.portion_g,
+            body.diet_goal_hint,
+            body.todays_meals,
+        )
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[prompt],
+        )
+
+        full_text = response.text
+        structured_data = extract_json(full_text)
+
+        return {
+            "filename": "",
+            "content_type": "text/plain",
+            "markdown": "",
             "nutrition_data": structured_data,
         }
 

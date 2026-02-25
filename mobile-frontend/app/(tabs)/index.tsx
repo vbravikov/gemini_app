@@ -2,10 +2,11 @@ import { useTheme } from "@/constants/theme";
 import { CollapsibleHeader } from "@/components/ui/base/CollapsibleHeader";
 import { MealLog, useMealLogs } from "@/hooks/useMealLogs";
 import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
+import { FoodSearchSheet, FoodSearchSheetHandle } from "@/components/ui/meal-analysis/FoodSearchSheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { Link, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   FlatList,
   StatusBar,
@@ -344,6 +345,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { logs, getDailyTotals } = useMealLogs();
   const { goals } = useCustomDailyGoals();
+  const foodSearchSheetRef = useRef<FoodSearchSheetHandle>(null);
 
   const scrollY = useSharedValue(0);
   const scrollHandler = useAnimatedScrollHandler({
@@ -455,26 +457,35 @@ export default function HomeScreen() {
           />
         </Animated.View>
 
-        {/* ---- Scan CTA ---- */}
-        <Animated.View entering={FadeInDown.delay(240)}>
+        {/* ---- Scan / Search CTA ---- */}
+        <Animated.View entering={FadeInDown.delay(240)} style={styles.ctaRow}>
           <TouchableOpacity
             activeOpacity={0.88}
             onPress={() => router.push("/camera")}
-            style={[styles.scanRow, { backgroundColor: theme.card }]}
+            style={[styles.ctaButton, { backgroundColor: theme.card }]}
           >
             <View
-              style={[styles.scanIcon, { backgroundColor: theme.tint + "22" }]}
+              style={[styles.ctaIcon, { backgroundColor: theme.tint + "22" }]}
             >
-              <MaterialIcons name="camera-alt" size={22} color={theme.tint} />
+              <MaterialIcons name="camera-alt" size={20} color={theme.tint} />
             </View>
-            <Text style={[styles.scanLabel, { color: theme.text }]}>
-              Scan a meal
+            <Text style={[styles.ctaLabel, { color: theme.text }]}>
+              Take Photo
             </Text>
-            <MaterialIcons
-              name="chevron-right"
-              size={20}
-              color={theme.textMuted}
-            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => foodSearchSheetRef.current?.present()}
+            style={[styles.ctaButton, { backgroundColor: theme.card }]}
+          >
+            <View
+              style={[styles.ctaIcon, { backgroundColor: theme.tint + "22" }]}
+            >
+              <MaterialIcons name="search" size={20} color={theme.tint} />
+            </View>
+            <Text style={[styles.ctaLabel, { color: theme.text }]}>
+              Search Food
+            </Text>
           </TouchableOpacity>
         </Animated.View>
 
@@ -564,6 +575,8 @@ export default function HomeScreen() {
         onScroll={scrollHandler}
         scrollEventThrottle={16}
       />
+
+      <FoodSearchSheet ref={foodSearchSheetRef} />
     </View>
   );
 }
@@ -670,25 +683,30 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: -4,
   },
-  // Scan CTA
-  scanRow: {
+  // CTA row (two buttons)
+  ctaRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  ctaButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 20,
     paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 14,
+    gap: 10,
   },
-  scanIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  ctaIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  scanLabel: {
+  ctaLabel: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: "semibold",
   },
   // Section header

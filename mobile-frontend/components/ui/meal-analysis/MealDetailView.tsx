@@ -1,4 +1,5 @@
 import { TopTabs } from "@/components/ui/base/tabs";
+import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -58,6 +59,8 @@ export interface Tab {
 
 interface MealDetailViewProps {
   imageUri: string;
+  /** Optional MaterialIcons icon name to show as a placeholder when imageUri is empty (manual food entry). */
+  iconPlaceholder?: React.ComponentProps<typeof MaterialIcons>["name"];
   heroInfo: HeroInfo;
   tabs: Tab[];
   actions: ActionButton[];
@@ -76,6 +79,7 @@ interface MealDetailViewProps {
 
 export const MealDetailView = ({
   imageUri,
+  iconPlaceholder,
   heroInfo,
   tabs,
   actions,
@@ -134,11 +138,21 @@ export const MealDetailView = ({
       >
         {/* Parallax Hero */}
         <Animated.View style={[styles.heroContainer, heroAnimatedStyle]}>
-          <Image
-            source={{ uri: imageUri }}
-            style={styles.heroImage}
-            contentFit="cover"
-          />
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.heroImage}
+              contentFit="cover"
+            />
+          ) : (
+            <View style={[styles.heroImage, styles.iconHero, { backgroundColor: isDark ? "#0d2614" : "#e8f5e9" }]}>
+              <MaterialIcons
+                name={iconPlaceholder ?? "restaurant"}
+                size={96}
+                color={isDark ? "#2ecc71" : "#27ae60"}
+              />
+            </View>
+          )}
           <LinearGradient
             colors={[
               isDark ? "rgba(16, 34, 19, 0.3)" : "rgba(0, 0, 0, 0.2)",
@@ -237,6 +251,10 @@ const styles = StyleSheet.create({
   heroImage: {
     width: "100%",
     height: "100%",
+  },
+  iconHero: {
+    justifyContent: "center",
+    alignItems: "center",
   },
   heroBottomInfo: {
     position: "absolute",

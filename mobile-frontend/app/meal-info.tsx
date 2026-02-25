@@ -36,6 +36,33 @@ import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
 import type { DailyGoals } from "@/hooks/useDailyGoals";
 
 // ---------------------------------------------------------------------------
+// Icon placeholder helper
+// ---------------------------------------------------------------------------
+
+type MaterialIconName = React.ComponentProps<typeof MaterialIcons>["name"];
+
+const getFoodIcon = (dishName: string): MaterialIconName => {
+  const n = dishName.toLowerCase();
+  if (/salad|greens|lettuce|kale|spinach/.test(n)) return "eco";
+  if (/burger|sandwich|wrap|sub/.test(n)) return "lunch-dining";
+  if (/pizza/.test(n)) return "local-pizza";
+  if (/soup|stew|broth/.test(n)) return "soup-kitchen";
+  if (/chicken|turkey|poultry/.test(n)) return "set-meal";
+  if (/fish|salmon|tuna|seafood|shrimp|prawn/.test(n)) return "set-meal";
+  if (/egg|omelette|omelet|frittata/.test(n)) return "egg";
+  if (/pasta|noodle|spaghetti|linguine|penne/.test(n)) return "ramen-dining";
+  if (/rice|grain|bowl/.test(n)) return "rice-bowl";
+  if (/bread|toast|bagel|croissant/.test(n)) return "bakery-dining";
+  if (/cake|cookie|brownie|dessert|ice.?cream|sweet/.test(n)) return "cake";
+  if (/coffee|tea|latte|cappuccino|espresso/.test(n)) return "coffee";
+  if (/smoothie|juice|shake|drink|beverage/.test(n)) return "local-bar";
+  if (/fruit|apple|banana|orange|berry|mango/.test(n)) return "apple";
+  if (/yogurt|yoghurt/.test(n)) return "rice-bowl";
+  if (/bar|snack|cereal/.test(n)) return "sports-bar";
+  return "restaurant";
+};
+
+// ---------------------------------------------------------------------------
 // Confidence config
 // ---------------------------------------------------------------------------
 
@@ -88,72 +115,101 @@ const DetailsTab = ({
 }) => {
   const theme = useTheme();
   return (
-  <View style={styles.tabContent}>
-    <PortionWeightCard
-      weight={nutrition.portion_size_g}
-      onPress={onEditWeight}
-    />
-
-    <Text style={[styles.sectionTitle, { color: theme.text }]}>
-      Nutritional Overview
-    </Text>
-    <NutritionalOverviewCard
-      nutrition={nutrition}
-      showBadge={true}
-      goals={goals}
-    />
-
-    <Text style={[styles.sectionTitle, { color: theme.text }]}>
-      Macronutrients
-    </Text>
-    <MacronutrientsGrid
-      nutrition={nutrition}
-      onPress={onEditMacros}
-    />
-
-    <Text style={[styles.sectionTitle, { color: theme.text }]}>
-      Identified Ingredients
-    </Text>
-    <View style={styles.ingredientsList}>
-      {nutrition.ingredients.map((ingredient, index) => (
-        <IngredientCard
-          key={index}
-          ingredient={ingredient}
-          onEdit={onEditIngredient}
-        />
-      ))}
-    </View>
-    <TouchableOpacity
-      style={styles.addIngredientButton}
-      onPress={onAddIngredient}
-    >
-      <MaterialIcons
-        name="add"
-        size={14}
-        color={theme.textMuted}
-        style={{ marginRight: 4 }}
+    <View style={styles.tabContent}>
+      <PortionWeightCard
+        weight={nutrition.portion_size_g}
+        onPress={onEditWeight}
       />
-      <Text style={[styles.addIngredientText, { color: theme.textMuted }]}>
-        Add Missing Ingredient
+
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        Nutritional Overview
       </Text>
-    </TouchableOpacity>
-  </View>
+      <NutritionalOverviewCard
+        nutrition={nutrition}
+        showBadge={true}
+        goals={goals}
+      />
+
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        Macronutrients
+      </Text>
+      <MacronutrientsGrid nutrition={nutrition} onPress={onEditMacros} />
+
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        Identified Ingredients
+      </Text>
+      <View style={styles.ingredientsList}>
+        {nutrition.ingredients.map((ingredient, index) => (
+          <IngredientCard
+            key={index}
+            ingredient={ingredient}
+            onEdit={onEditIngredient}
+          />
+        ))}
+      </View>
+      <TouchableOpacity
+        style={styles.addIngredientButton}
+        onPress={onAddIngredient}
+      >
+        <MaterialIcons
+          name="add"
+          size={14}
+          color={theme.textMuted}
+          style={{ marginRight: 4 }}
+        />
+        <Text style={[styles.addIngredientText, { color: theme.textMuted }]}>
+          Add Missing Ingredient
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const MealInfo = () => {
-  const params = useLocalSearchParams<{ photoUri: string }>();
+  const params = useLocalSearchParams<{
+    photoUri: string;
+    manualNutritionJson?: string;
+  }>();
   const router = useRouter();
   const theme = useTheme();
   const { addLog, getLogsForDate } = useMealLogs();
   const { goalConfig } = useDietPreferences();
   const { goals } = useCustomDailyGoals();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<AnalysisResponse | null>(null);
+
+  // Detect manual entry mode (search flow — no photo)
+  const isManualEntry = !params.photoUri && !!params.manualNutritionJson;
+
+  const [loading, setLoading] = useState(!isManualEntry);
+  const [data, setData] = useState<AnalysisResponse | null>(() => {
+    if (isManualEntry && params.manualNutritionJson) {
+      try {
+        const nutrition: NutritionData = JSON.parse(params.manualNutritionJson);
+        return {
+          filename: "",
+          content_type: "text/plain",
+          markdown: "",
+          nutrition_data: nutrition,
+        };
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [error, setError] = useState<string | null>(null);
 
   // Ingredient editing state — lifted so both sheets and DetailsTab share it
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
+    if (isManualEntry && params.manualNutritionJson) {
+      try {
+        const nutrition: NutritionData = JSON.parse(params.manualNutritionJson);
+        return nutrition.ingredients ?? [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
   const [editingIngredient, setEditingIngredient] = useState<Ingredient | null>(
     null,
   );
@@ -198,11 +254,13 @@ const MealInfo = () => {
   );
 
   useEffect(() => {
+    // Manual entry: data already seeded — nothing to fetch
+    if (isManualEntry) return;
     if (!params.photoUri) return;
     const controller = new AbortController();
     handleAnalysis(controller.signal);
     return () => controller.abort();
-  }, [params.photoUri, handleAnalysis]);
+  }, [params.photoUri, isManualEntry, handleAnalysis]);
 
   // Derived nutrition — recalculate calories & weight from live ingredient list
   const derivedNutrition = useMemo((): NutritionData | null => {
@@ -254,12 +312,13 @@ const MealInfo = () => {
   }, []);
 
   const onAddToLog = useCallback(async () => {
-    if (data && params.photoUri && derivedNutrition) {
+    if (data && derivedNutrition) {
       const updatedData: AnalysisResponse = {
         ...data,
         nutrition_data: derivedNutrition,
       };
-      await addLog(updatedData, params.photoUri);
+      // Manual entries have no photo — addLog handles empty imageUri gracefully
+      await addLog(updatedData, params.photoUri ?? "");
       router.replace("/logs");
     }
   }, [data, derivedNutrition, params.photoUri, addLog, router]);
@@ -291,10 +350,7 @@ const MealInfo = () => {
           </View>
         ),
         contentComponent: (
-          <MealSummaryTab
-            nutrition={derivedNutrition}
-            goals={goals}
-          />
+          <MealSummaryTab nutrition={derivedNutrition} goals={goals} />
         ),
       },
       {
@@ -374,7 +430,12 @@ const MealInfo = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <MealDetailView
-        imageUri={params.photoUri}
+        imageUri={params.photoUri ?? ""}
+        iconPlaceholder={
+          isManualEntry
+            ? getFoodIcon(data?.nutrition_data?.dish_name ?? "")
+            : undefined
+        }
         heroInfo={{
           title: data?.nutrition_data?.dish_name ?? "Meal Detected",
           subtitle: (() => {

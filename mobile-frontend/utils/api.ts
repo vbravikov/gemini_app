@@ -111,9 +111,50 @@ const buildPrompt = (context?: PromptContext): string => {
   );
 };
 
-/**
- * MOCK response for testing
- */
+const buildTextPrompt = (foodName: string, portionG: number, context?: PromptContext): string => {
+  const iconList = ICON_KEYS.join(", ");
+
+  let contextSection = "";
+  if (context?.dietGoalHint) {
+    contextSection += `User's diet goal: ${context.dietGoalHint}\n\n`;
+  }
+  if (context?.todaysMeals && context.todaysMeals.length > 0) {
+    contextSection +=
+      `Meals already eaten today: ${context.todaysMeals.join(", ")}. ` +
+      "Factor this into your verdict and summary_note — mention whether this meal complements or conflicts with what was already eaten, " +
+      "and suggest what the user should prioritise in later meals.\n\n";
+  }
+
+  return (
+    `You are a nutrition assistant. The user is searching for: "${foodName}" with a portion size of ${portionG}g.\n\n` +
+    contextSection +
+    "Return a single JSON block delimited by ```json ... ```. Do not include any text outside the JSON block.\n\n" +
+    "The JSON must contain these fields:\n" +
+    "  'dish_name' (string),\n" +
+    "  'portion_size_g' (number),\n" +
+    "  'calories_kcal' (number),\n" +
+    "  'protein_g' (number),\n" +
+    "  'carbs_g' (number),\n" +
+    "  'fats_g' (number),\n" +
+    "  'confidence' (string) — 'low', 'medium', or 'high',\n" +
+    "  'diet_verdict' (string) — how healthy this meal is relative to the user's goal (or a typical 2000 kcal diet if no goal is set):\n" +
+    "    'excellent' = well-balanced, high protein, low saturated fat and sugar,\n" +
+    "    'good'      = solid choice with minor trade-offs,\n" +
+    "    'moderate'  = acceptable but with notable caveats (high carbs, moderate fat, etc.),\n" +
+    "    'limit'     = high calories, saturated fat, sugar, or sodium — eat sparingly.\n" +
+    "  'summary_note' (string) — exactly 1–2 plain-text sentences explaining the verdict. " +
+    "Be specific and direct: mention the strongest positive and the biggest concern. No markdown, no emojis.\n" +
+    "  'ingredients' (array) — each item has:\n" +
+    "    'name' (string),\n" +
+    "    'calories_kcal' (number),\n" +
+    "    'weight_g' (number),\n" +
+    `    'icon_key' (string) — best matching key from: ${iconList}.\n` +
+    "The sum of ingredient calories_kcal should approximately equal total calories_kcal. " +
+    "Return valid JSON only."
+  );
+};
+
+
 export const MOCK_ANALYSIS_DATA: AnalysisResponse = {
   filename: "mock_image.jpg",
   content_type: "image/jpeg",
@@ -162,6 +203,65 @@ export const MOCK_ANALYSIS_DATA: AnalysisResponse = {
       },
     ],
   },
+};
+
+/**
+ * Calls the backend /analyze-text endpoint for text-only (no image) food analysis via Gemini.
+ * @param foodName The food name to analyse.
+ * @param portionG Portion size in grams.
+ * @param signal Optional AbortSignal to cancel the request.
+ * @param context Optional diet goal hint and today's meals for richer context.
+ * @param useMock Defaults to __DEV__ — returns mock data in development.
+ */
+export const analyzeTextFood = async (
+  foodName: string,
+  portionG: number = 100,
+  signal?: AbortSignal,
+  context?: PromptContext,
+  useMock: boolean = __DEV__,
+): Promise<AnalysisResponse> => {
+  if (useMock) {
+    console.log(`[API] Using MOCK response for text query: ${foodName}`);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    // Return mock data with dish_name matching the searched food
+    return {
+      ...MOCK_ANALYSIS_DATA,
+      nutrition_data: MOCK_ANALYSIS_DATA.nutrition_data
+        ? { ...MOCK_ANALYSIS_DATA.nutrition_data, dish_name: foodName, portion_size_g: portionG }
+        : null,
+    };
+  }
+
+  const body = {
+    food_name: foodName,
+    portion_g: portionG,
+    diet_goal_hint: context?.dietGoalHint,
+    todays_meals: context?.todaysMeals,
+    prompt: buildTextPrompt(foodName, portionG, context),
+  };
+
+  console.log(`[API] Analyzing text food: ${foodName} @ ${portionG}g`);
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/analyze-text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (!response.ok) {
+      console.error(`[API] /analyze-text responded with status ${response.status}`);
+      throw new Error(`Server responded with ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(`[API] Text analysis successful for: ${foodName}`);
+    return data;
+  } catch (error) {
+    console.error(`[API] Network request failed for ${BACKEND_URL}/analyze-text`);
+    throw error;
+  }
 };
 
 /**

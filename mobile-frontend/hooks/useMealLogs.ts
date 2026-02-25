@@ -56,16 +56,20 @@ export function useMealLogs() {
         const filename = `${Date.now()}.jpg`;
         const localImageUri = `${MEAL_IMAGES_DIR}${filename}`;
 
-        // Copy image to permanent storage
-        await FileSystem.copyAsync({
-          from: tempImageUri,
-          to: localImageUri,
-        });
+        // Copy image to permanent storage (skip if no image, e.g. manual text entry)
+        let permanentImageUri = "";
+        if (tempImageUri) {
+          await FileSystem.copyAsync({
+            from: tempImageUri,
+            to: localImageUri,
+          });
+          permanentImageUri = localImageUri;
+        }
 
         const newLog: MealLog = {
           id: Crypto.randomUUID(),
           timestamp: Date.now(),
-          imageUri: localImageUri,
+          imageUri: permanentImageUri,
           nutrition: data.nutrition_data,
           markdown: data.markdown,
         };
