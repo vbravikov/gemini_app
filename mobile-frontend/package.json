@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",
-    "@expo/vector-icons": "^15.0.3",
-    "@react-navigation/bottom-tabs": "^7.4.0",
+    "@expo/vector-icons": "^15.1.1",
+    "@react-navigation/bottom-tabs": "^7.14.0",
     "@react-navigation/elements": "^2.9.5",
-    "@react-navigation/native": "^7.1.8",
+    "@react-navigation/native": "^7.1.28",
     "@shopify/react-native-skia": "2.2.12",
     "expo": "~54.0.33",
     "expo-blur": "^15.0.8",
@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "eslint": "^9.39.2",
+    "eslint": "^9.39.3",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },

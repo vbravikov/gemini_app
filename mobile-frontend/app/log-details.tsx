@@ -21,9 +21,9 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-import { useTheme } from "../constants/theme";
-import { useMealLogs } from "../hooks/useMealLogs";
-import { NutritionData } from "../utils/api";
+import { useTheme } from "@/constants/theme";
+import { useMealLogs } from "@/hooks/useMealLogs";
+import { NutritionData } from "@/utils/api";
 import { MealSummaryTab } from "@/components/ui/meal-analysis/MealSummaryTab";
 import {
   NutritionalOverviewCard,
