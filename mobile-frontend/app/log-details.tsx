@@ -112,7 +112,7 @@ const LogDetails = () => {
           </View>
         ),
         contentComponent: (
-          <MealSummaryTab markdown={log.markdown} theme={theme} />
+          <MealSummaryTab nutrition={log.nutrition} theme={theme} />
         ),
       },
       {

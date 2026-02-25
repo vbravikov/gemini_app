@@ -38,6 +38,16 @@ export interface NutritionData {
   ingredients: Ingredient[];
   /** AI confidence in the analysis. */
   confidence?: "low" | "medium" | "high";
+  /**
+   * Single-word diet verdict for this meal relative to typical daily goals.
+   * excellent → well-balanced, high protein, low sugar/fat
+   * good      → solid choice with minor trade-offs
+   * moderate  → acceptable but notable caveats (high carbs, moderate fat, etc.)
+   * limit     → high calories, saturated fat, sugar, or sodium — eat sparingly
+   */
+  diet_verdict?: "excellent" | "good" | "moderate" | "limit";
+  /** 1–2 sentence plain-text explanation of the verdict. */
+  summary_note?: string;
 }
 
 export interface AnalysisResponse {
@@ -47,25 +57,53 @@ export interface AnalysisResponse {
   nutrition_data: NutritionData | null;
 }
 
-const buildPrompt = () => {
+interface PromptContext {
+  dietGoalHint?: string;
+  todaysMeals?: string[];
+}
+
+const buildPrompt = (context?: PromptContext): string => {
   const iconList = ICON_KEYS.join(", ");
+
+  let contextSection = "";
+  if (context?.dietGoalHint) {
+    contextSection += `User's diet goal: ${context.dietGoalHint}\n\n`;
+  }
+  if (context?.todaysMeals && context.todaysMeals.length > 0) {
+    contextSection +=
+      `Meals already eaten today: ${context.todaysMeals.join(", ")}. ` +
+      "Factor this into your verdict and summary_note — mention whether this meal complements or conflicts with what was already eaten, " +
+      "and suggest what the user should prioritise in later meals.\n\n";
+  }
+
   return (
-    "You are a nutrition assistant. From this photo, estimate what the food is and give an approximate nutrition breakdown.\n\n" +
-    "Return two parts:\n" +
-    "1. A detailed markdown summary for the user. Include a title, portion estimate, and a friendly nutritional note.\n" +
-    "2. A structured JSON block delimited by ```json ... ``` containing the following fields:\n" +
-    "   'dish_name' (string), 'portion_size_g' (number), 'calories_kcal' (number), 'protein_g' (number),\n" +
-    "   'carbs_g' (number), 'fats_g' (number),\n" +
-    "   'confidence' (string) — your overall confidence in the analysis: one of 'low', 'medium', or 'high',\n" +
-    "   'ingredients': an array of objects, each with:\n" +
-    "     'name' (string) — the ingredient name,\n" +
-    "     'calories_kcal' (number) — estimated calories for this ingredient,\n" +
-    "     'weight_g' (number) — estimated weight in grams,\n" +
-    "     'icon_key' (string) — the single best matching key from this list: " +
+    "You are a nutrition assistant. Analyse the food in this photo and return a single JSON block delimited by ```json ... ```. " +
+    "Do not include any text outside the JSON block.\n\n" +
+    contextSection +
+    "The JSON must contain these fields:\n" +
+    "  'dish_name' (string),\n" +
+    "  'portion_size_g' (number),\n" +
+    "  'calories_kcal' (number),\n" +
+    "  'protein_g' (number),\n" +
+    "  'carbs_g' (number),\n" +
+    "  'fats_g' (number),\n" +
+    "  'confidence' (string) — your confidence in the analysis: 'low', 'medium', or 'high',\n" +
+    "  'diet_verdict' (string) — how healthy this meal is relative to the user's goal (or a typical 2000 kcal diet if no goal is set):\n" +
+    "    'excellent' = well-balanced, high protein, low saturated fat and sugar,\n" +
+    "    'good'      = solid choice with minor trade-offs,\n" +
+    "    'moderate'  = acceptable but with notable caveats (high carbs, moderate fat, etc.),\n" +
+    "    'limit'     = high calories, saturated fat, sugar, or sodium — eat sparingly.\n" +
+    "  'summary_note' (string) — exactly 1–2 plain-text sentences explaining the verdict. " +
+    "Be specific and direct: mention the strongest positive and the biggest concern. No markdown, no emojis.\n" +
+    "  'ingredients' (array) — each item has:\n" +
+    "    'name' (string),\n" +
+    "    'calories_kcal' (number),\n" +
+    "    'weight_g' (number),\n" +
+    "    'icon_key' (string) — best matching key from: " +
     iconList +
     ".\n" +
-    "   The sum of ingredient calories_kcal should approximately equal the total calories_kcal.\n\n" +
-    "Ensure the JSON is valid and accurate based on your visual estimation."
+    "The sum of ingredient calories_kcal should approximately equal total calories_kcal. " +
+    "Return valid JSON only."
   );
 };
 
@@ -75,24 +113,7 @@ const buildPrompt = () => {
 export const MOCK_ANALYSIS_DATA: AnalysisResponse = {
   filename: "mock_image.jpg",
   content_type: "image/jpeg",
-  markdown: `
-# 🥗 Analysis: Grilled Chicken Salad
-
-Based on the image, here is the nutritional breakdown of your meal:
-
-### 📋 Summary
-- **Dish**: Mediterranean Style Grilled Chicken Salad
-- **Estimated Portion**: 350g
-
-### 📊 Quick Facts
-* **Calories**: 450 kcal
-* **Protein**: 38g
-* **Carbs**: 12g
-* **Fats**: 22g
-
-### 💡 Nutritional Note
-This is an **excellent** high-protein meal choice. It's rich in fiber and micronutrients. The avocado provides great satiety. 
-`,
+  markdown: "",
   nutrition_data: {
     dish_name: "Grilled Chicken Salad",
     portion_size_g: 350,
@@ -101,6 +122,9 @@ This is an **excellent** high-protein meal choice. It's rich in fiber and micron
     carbs_g: 12,
     fats_g: 22,
     confidence: "high",
+    diet_verdict: "excellent",
+    summary_note:
+      "High protein and fibre-rich greens make this an excellent choice for satiety and muscle recovery. Fat content is slightly elevated due to avocado and olive oil, but these are predominantly healthy unsaturated fats.",
     ingredients: [
       {
         name: "Chicken Breast",
@@ -146,6 +170,7 @@ export const analyzeImage = async (
   imageUri: string,
   signal?: AbortSignal,
   useMock: boolean = __DEV__,
+  context?: PromptContext,
 ): Promise<AnalysisResponse> => {
   if (useMock) {
     console.log(`[API] Using MOCK response for: ${imageUri}`);
@@ -161,7 +186,7 @@ export const analyzeImage = async (
     type: "image/jpeg",
   });
 
-  formData.append("prompt", buildPrompt());
+  formData.append("prompt", buildPrompt(context));
 
   console.log(`[API] Attempting upload to: ${BACKEND_URL}/analyze`);
 

@@ -20,6 +20,7 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useTheme } from "@/constants/theme";
 import { AnalysisResponse, analyzeImage, NutritionData } from "@/utils/api";
 import { useMealLogs } from "@/hooks/useMealLogs";
+import { useDietPreferences } from "@/hooks/useDietPreferences";
 
 const DetailsTab = ({
   nutrition,
@@ -80,7 +81,8 @@ const MealInfo = () => {
   const params = useLocalSearchParams<{ photoUri: string }>();
   const router = useRouter();
   const theme = useTheme();
-  const { addLog } = useMealLogs();
+  const { addLog, getLogsForDate } = useMealLogs();
+  const { goalConfig } = useDietPreferences();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +91,14 @@ const MealInfo = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await analyzeImage(params.photoUri, signal);
+      const todaysMeals = getLogsForDate(new Date()).map(
+        (l) => l.nutrition.dish_name,
+      );
+      const context = {
+        dietGoalHint: goalConfig?.promptHint,
+        todaysMeals,
+      };
+      const response = await analyzeImage(params.photoUri, signal, undefined, context);
       setData(response);
     } catch (err: any) {
       if (err?.name === "AbortError") return; // screen unmounted — ignore
@@ -98,7 +107,7 @@ const MealInfo = () => {
     } finally {
       setLoading(false);
     }
-  }, [params.photoUri]);
+  }, [params.photoUri, goalConfig, getLogsForDate]);
 
   useEffect(() => {
     if (!params.photoUri) return;
@@ -140,9 +149,9 @@ const MealInfo = () => {
             </Text>
           </View>
         ),
-        contentComponent: (
-          <MealSummaryTab markdown={data.markdown} theme={theme} />
-        ),
+        contentComponent: data.nutrition_data ? (
+          <MealSummaryTab nutrition={data.nutrition_data} theme={theme} />
+        ) : null,
       },
       {
         id: "details",

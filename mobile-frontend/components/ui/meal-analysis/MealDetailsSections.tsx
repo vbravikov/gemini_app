@@ -4,6 +4,15 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { NutritionData } from "../../../utils/api";
 import { DEFAULT_DAILY_GOALS } from "../../../constants/nutrition";
 
+type Verdict = NonNullable<NutritionData["diet_verdict"]>;
+
+const BADGE_CONFIG: Record<Verdict, { label: string; color: string; bg: string; bgDark: string }> = {
+  excellent: { label: "Excellent",  color: "#16a34a", bg: "#dcfce7", bgDark: "#052e16" },
+  good:      { label: "Good",       color: "#0d9488", bg: "#ccfbf1", bgDark: "#042f2e" },
+  moderate:  { label: "Moderate",   color: "#d97706", bg: "#fef3c7", bgDark: "#2d1a00" },
+  limit:     { label: "Limit",      color: "#dc2626", bg: "#fee2e2", bgDark: "#2d0a0a" },
+};
+
 interface CardProps {
   theme: any;
 }
@@ -65,6 +74,10 @@ export const NutritionalOverviewCard = ({
     100
   );
 
+  const verdict = nutrition.diet_verdict ?? "moderate";
+  const badge = BADGE_CONFIG[verdict];
+  const badgeBg = theme.isDark ? badge.bgDark : badge.bg;
+
   return (
     <View
       style={[
@@ -94,18 +107,18 @@ export const NutritionalOverviewCard = ({
             style={[
               styles.goalBadge,
               {
-                backgroundColor: theme.isDark ? "#0f3d1f" : "#dcfce7",
-                borderColor: theme.isDark ? "#166534" : "#86efac",
+                backgroundColor: badgeBg,
+                borderColor: badge.color + "55",
               },
             ]}
           >
             <Text
               style={[
                 styles.goalBadgeText,
-                { color: theme.isDark ? "#4ade80" : "#166534" },
+                { color: badge.color },
               ]}
             >
-              Within Goal
+              {badge.label}
             </Text>
           </View>
         )}

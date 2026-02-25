@@ -1,9 +1,14 @@
 import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { useTheme } from "@/constants/theme";
 import { useMealLogs } from "@/hooks/useMealLogs";
+import {
+  DIET_GOAL_OPTIONS,
+  DietGoal,
+  useDietPreferences,
+} from "@/hooks/useDietPreferences";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 // ---------------------------------------------------------------------------
@@ -120,16 +125,73 @@ function InfoRow({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
+function GoalTile({
+  config,
+  selected,
+  onPress,
+  theme,
+}: {
+  config: (typeof DIET_GOAL_OPTIONS)[number];
+  selected: boolean;
+  onPress: () => void;
+  theme: any;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        styles.goalTile,
+        {
+          backgroundColor: selected
+            ? theme.isDark
+              ? "#0f2d1f"
+              : "#f0fdf4"
+            : theme.card,
+          borderColor: selected
+            ? theme.tint
+            : theme.isDark
+              ? "#1f3d29"
+              : "#e5e7eb",
+        },
+      ]}
+      activeOpacity={0.7}
+    >
+      <MaterialIcons
+        name={config.icon as keyof typeof MaterialIcons.glyphMap}
+        size={22}
+        color={selected ? theme.tint : theme.textMuted}
+      />
+      <Text
+        style={[
+          styles.goalTileLabel,
+          { color: selected ? theme.tint : theme.text },
+        ]}
+      >
+        {config.label}
+      </Text>
+      <Text
+        style={[styles.goalTileDescription, { color: theme.textMuted }]}
+        numberOfLines={2}
+      >
+        {config.description}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const { logs } = useMealLogs();
+  const { dietGoal, setDietGoal } = useDietPreferences();
 
   const totalCalories = logs.reduce((s, l) => s + l.nutrition.calories_kcal, 0);
   const streak = calcStreak(logs);
+
+  const handleGoalTilePress = (key: DietGoal) => {
+    setDietGoal(dietGoal === key ? null : key);
+  };
 
   return (
     <ScrollView
@@ -169,6 +231,31 @@ export default function ProfileScreen() {
           theme={theme}
         />
         <StatCard icon="emoji-events" label="Day streak" value={streak} theme={theme} />
+      </Animated.View>
+
+      {/* ---- Diet Goal ---- */}
+      <Animated.View
+        entering={FadeInDown.delay(150)}
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+          },
+        ]}
+      >
+        <SectionHeader title="MY DIET GOAL" theme={theme} />
+        <View style={styles.goalTileGrid}>
+          {DIET_GOAL_OPTIONS.map((option) => (
+            <GoalTile
+              key={option.key}
+              config={option}
+              selected={dietGoal === option.key}
+              onPress={() => handleGoalTilePress(option.key)}
+              theme={theme}
+            />
+          ))}
+        </View>
       </Animated.View>
 
       {/* ---- Daily Goals ---- */}
@@ -211,17 +298,6 @@ export default function ProfileScreen() {
           color="#eab308"
           theme={theme}
         />
-        <View
-          style={[
-            styles.goalNote,
-            { backgroundColor: theme.isDark ? "#0f2d1f" : "#f0fdf4" },
-          ]}
-        >
-          <MaterialIcons name="info-outline" size={14} color={theme.tint} />
-          <Text style={[styles.goalNoteText, { color: theme.textMuted }]}>
-            Custom goals will be configurable in a future update.
-          </Text>
-        </View>
       </Animated.View>
 
       {/* ---- App Info ---- */}
@@ -365,6 +441,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: "medium",
     lineHeight: 18,
+  },
+  goalTileGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  goalTile: {
+    width: "47%",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 14,
+    gap: 6,
+    boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+  },
+  goalTileLabel: {
+    fontSize: 14,
+    fontFamily: "semibold",
+  },
+  goalTileDescription: {
+    fontSize: 11,
+    fontFamily: "medium",
+    lineHeight: 15,
   },
   infoRow: {
     flexDirection: "row",
