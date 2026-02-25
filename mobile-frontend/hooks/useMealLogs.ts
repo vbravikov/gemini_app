@@ -1,3 +1,4 @@
+import * as Crypto from "expo-crypto";
 import * as FileSystem from "expo-file-system/legacy";
 import { useCallback, useEffect, useState } from "react";
 import { createMMKV } from "react-native-mmkv";
@@ -62,7 +63,7 @@ export function useMealLogs() {
         });
 
         const newLog: MealLog = {
-          id: Math.random().toString(36).substring(7),
+          id: Crypto.randomUUID(),
           timestamp: Date.now(),
           imageUri: localImageUri,
           nutrition: data.nutrition_data,

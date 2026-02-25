@@ -1,12 +1,384 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { useTheme } from '@/constants/theme';
+import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
+import { useTheme } from "@/constants/theme";
+import { useMealLogs } from "@/hooks/useMealLogs";
+import { MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 
-export default function ProfileScreen() {
-  const theme = useTheme();
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Returns the number of consecutive days up to and including today that have
+ *  at least one log entry. */
+function calcStreak(logs: { timestamp: number }[]): number {
+  if (logs.length === 0) return 0;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const loggedDays = new Set(
+    logs.map((l) => {
+      const d = new Date(l.timestamp);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    }),
+  );
+
+  let streak = 0;
+  const cursor = new Date(today);
+  while (loggedDays.has(cursor.getTime())) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+function SectionHeader({ title, theme }: { title: string; theme: any }) {
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: theme.text }}>Profile Screen</Text>
+    <Text style={[styles.sectionHeader, { color: theme.textMuted }]}>
+      {title}
+    </Text>
+  );
+}
+
+function StatCard({
+  icon,
+  label,
+  value,
+  theme,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  value: string | number;
+  theme: any;
+}) {
+  return (
+    <View
+      style={[
+        styles.statCard,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+        },
+      ]}
+    >
+      <MaterialIcons name={icon} size={22} color={theme.tint} />
+      <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: theme.textMuted }]}>{label}</Text>
     </View>
   );
 }
+
+function GoalRow({
+  label,
+  value,
+  unit,
+  color,
+  theme,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  color: string;
+  theme: any;
+}) {
+  return (
+    <View style={styles.goalRow}>
+      <View style={[styles.goalDot, { backgroundColor: color }]} />
+      <Text style={[styles.goalLabel, { color: theme.text }]}>{label}</Text>
+      <Text style={[styles.goalValue, { color: theme.textMuted }]}>
+        {value}
+        {unit}
+      </Text>
+    </View>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+  theme,
+}: {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  value: string;
+  theme: any;
+}) {
+  return (
+    <View style={styles.infoRow}>
+      <MaterialIcons name={icon} size={18} color={theme.tint} style={{ width: 24 }} />
+      <Text style={[styles.infoLabel, { color: theme.text }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: theme.textMuted }]}>{value}</Text>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Screen
+// ---------------------------------------------------------------------------
+
+export default function ProfileScreen() {
+  const theme = useTheme();
+  const { logs } = useMealLogs();
+
+  const totalCalories = logs.reduce((s, l) => s + l.nutrition.calories_kcal, 0);
+  const streak = calcStreak(logs);
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      contentContainerStyle={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+    >
+      {/* ---- Avatar / Header ---- */}
+      <Animated.View entering={FadeInDown.delay(0)} style={styles.avatarSection}>
+        <BlurView
+          intensity={40}
+          tint={theme.isDark ? "dark" : "light"}
+          style={[
+            styles.avatarCircle,
+            { borderColor: theme.isDark ? "#1f3d29" : "#d1fae5" },
+          ]}
+          experimentalBlurMethod="dimezisBlurView"
+        >
+          <Text style={[styles.avatarText, { color: theme.tint }]}>DG</Text>
+        </BlurView>
+        <Text style={[styles.userName, { color: theme.text }]}>Diet Glasses</Text>
+        <Text style={[styles.userSubtitle, { color: theme.textMuted }]}>
+          {logs.length === 0
+            ? "No meals logged yet"
+            : `${logs.length} meal${logs.length === 1 ? "" : "s"} tracked`}
+        </Text>
+      </Animated.View>
+
+      {/* ---- Stats row ---- */}
+      <Animated.View entering={FadeInDown.delay(100)} style={styles.statsRow}>
+        <StatCard icon="restaurant" label="Meals" value={logs.length} theme={theme} />
+        <StatCard
+          icon="local-fire-department"
+          label="kcal total"
+          value={totalCalories.toLocaleString()}
+          theme={theme}
+        />
+        <StatCard icon="emoji-events" label="Day streak" value={streak} theme={theme} />
+      </Animated.View>
+
+      {/* ---- Daily Goals ---- */}
+      <Animated.View
+        entering={FadeInDown.delay(200)}
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+          },
+        ]}
+      >
+        <SectionHeader title="DAILY GOALS" theme={theme} />
+        <GoalRow
+          label="Calories"
+          value={DEFAULT_DAILY_GOALS.calories_kcal}
+          unit=" kcal"
+          color={theme.tint}
+          theme={theme}
+        />
+        <GoalRow
+          label="Protein"
+          value={DEFAULT_DAILY_GOALS.protein_g}
+          unit="g"
+          color="#3b82f6"
+          theme={theme}
+        />
+        <GoalRow
+          label="Carbs"
+          value={DEFAULT_DAILY_GOALS.carbs_g}
+          unit="g"
+          color="#f97316"
+          theme={theme}
+        />
+        <GoalRow
+          label="Fats"
+          value={DEFAULT_DAILY_GOALS.fats_g}
+          unit="g"
+          color="#eab308"
+          theme={theme}
+        />
+        <View
+          style={[
+            styles.goalNote,
+            { backgroundColor: theme.isDark ? "#0f2d1f" : "#f0fdf4" },
+          ]}
+        >
+          <MaterialIcons name="info-outline" size={14} color={theme.tint} />
+          <Text style={[styles.goalNoteText, { color: theme.textMuted }]}>
+            Custom goals will be configurable in a future update.
+          </Text>
+        </View>
+      </Animated.View>
+
+      {/* ---- App Info ---- */}
+      <Animated.View
+        entering={FadeInDown.delay(300)}
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+          },
+        ]}
+      >
+        <SectionHeader title="APP INFO" theme={theme} />
+        <InfoRow
+          icon="palette"
+          label="Appearance"
+          value={theme.isDark ? "Dark" : "Light"}
+          theme={theme}
+        />
+        <InfoRow
+          icon="science"
+          label="Analysis mode"
+          value={__DEV__ ? "Mock (dev)" : "Live API"}
+          theme={theme}
+        />
+        <InfoRow
+          icon="memory"
+          label="Architecture"
+          value="New Architecture"
+          theme={theme}
+        />
+      </Animated.View>
+    </ScrollView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    paddingBottom: 120,
+  },
+  avatarSection: {
+    alignItems: "center",
+    paddingVertical: 32,
+    gap: 8,
+  },
+  avatarCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+    marginBottom: 4,
+  },
+  avatarText: {
+    fontSize: 28,
+    fontFamily: "bold",
+  },
+  userName: {
+    fontSize: 24,
+    fontFamily: "bold",
+  },
+  userSubtitle: {
+    fontSize: 14,
+    fontFamily: "medium",
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    alignItems: "center",
+    gap: 6,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+  },
+  statValue: {
+    fontSize: 20,
+    fontFamily: "bold",
+  },
+  statLabel: {
+    fontSize: 11,
+    fontFamily: "medium",
+    textAlign: "center",
+  },
+  card: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 20,
+    marginBottom: 16,
+    gap: 0,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+  },
+  sectionHeader: {
+    fontSize: 11,
+    fontFamily: "semibold",
+    letterSpacing: 1.5,
+    marginBottom: 16,
+  },
+  goalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 12,
+  },
+  goalDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  goalLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "medium",
+  },
+  goalValue: {
+    fontSize: 15,
+    fontFamily: "semibold",
+  },
+  goalNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+  },
+  goalNoteText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: "medium",
+    lineHeight: 18,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 12,
+  },
+  infoLabel: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: "medium",
+  },
+  infoValue: {
+    fontSize: 14,
+    fontFamily: "medium",
+  },
+});

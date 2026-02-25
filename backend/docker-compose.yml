@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - .:/app
+    restart: unless-stopped
+
+  ngrok:
+    image: wernight/ngrok
+    depends_on:
+      - backend
+    command: ngrok http --log=stdout backend:8000
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
+    restart: unless-stopped
+
+# Notes:
+# - Set the environment variables GEMINI_API_KEY and NGROK_AUTHTOKEN in your shell
+#   or in a .env file before running `docker compose up --build`.
+# - ngrok's web UI will be available at http://localhost:4040

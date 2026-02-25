@@ -1,81 +1,65 @@
+import { ICON_FAMILY_MAP, resolveIcon } from "@/constants/ingredientIcons";
+import { Ingredient } from "@/utils/api";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 interface IngredientCardProps {
-  ingredient: string;
-  portionSizeG: number;
-  ingredientsCount: number;
+  ingredient: Ingredient;
   theme: any;
 }
 
-export const IngredientCard = ({
-  ingredient,
-  portionSizeG,
-  ingredientsCount,
-  theme,
-}: IngredientCardProps) => {
-  const emojiMap: { [key: string]: string } = {
-    chicken: "🍗",
-    avocado: "🥑",
-    quinoa: "🍚",
-    tomato: "🍅",
-    rice: "🍚",
-    broccoli: "🥦",
-    salmon: "🐟",
-    egg: "🥚",
-  };
+const IngredientIcon = ({
+  iconKey,
+  color,
+}: {
+  iconKey: string | undefined;
+  color: string;
+}) => {
+  const entry = resolveIcon(iconKey);
+  const IconComponent = ICON_FAMILY_MAP[entry.family] as any;
+  return <IconComponent name={entry.name} size={22} color={color} />;
+};
 
-  const emoji = Object.keys(emojiMap).find((key) =>
-    ingredient.toLowerCase().includes(key),
-  )
-    ? emojiMap[
-        Object.keys(emojiMap).find((key) =>
-          ingredient.toLowerCase().includes(key),
-        )!
-      ]
-    : "🍽️";
-
-  const mockCalories = Math.floor(Math.random() * 200) + 50;
-
-  return (
+export const IngredientCard = ({ ingredient, theme }: IngredientCardProps) => (
+  <View
+    style={[
+      styles.ingredientCard,
+      {
+        backgroundColor: theme.card,
+        borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+      },
+    ]}
+  >
     <View
       style={[
-        styles.ingredientCard,
+        styles.ingredientIcon,
         {
-          backgroundColor: theme.card,
-          borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+          backgroundColor: theme.isDark
+            ? "rgba(19, 236, 55, 0.1)"
+            : "#f0fdf4",
         },
       ]}
     >
-      <View
-        style={[
-          styles.ingredientIcon,
-          {
-            backgroundColor: theme.isDark ? "rgba(19, 236, 55, 0.1)" : "#f0fdf4",
-          },
-        ]}
-      >
-        <Text style={styles.ingredientEmoji}>{emoji}</Text>
-      </View>
-      <View style={styles.ingredientInfo}>
-        <Text style={[styles.ingredientName, { color: theme.text }]}>
-          {ingredient}
-        </Text>
-        <Text style={[styles.ingredientMeta, { color: theme.textMuted }]}>
-          ~{Math.round(portionSizeG / ingredientsCount)}g
-        </Text>
-      </View>
-      <View style={styles.ingredientCalories}>
-        <Text style={[styles.ingredientCalValue, { color: theme.text }]}>
-          {mockCalories}
-        </Text>
-        <Text style={[styles.ingredientCalLabel, { color: theme.textMuted }]}>
-          kcal
-        </Text>
-      </View>
+      <IngredientIcon iconKey={ingredient.icon_key} color={theme.tint} />
     </View>
-  );
-};
+    <View style={styles.ingredientInfo}>
+      <Text style={[styles.ingredientName, { color: theme.text }]}>
+        {ingredient.name}
+      </Text>
+      <Text style={[styles.ingredientMeta, { color: theme.textMuted }]}>
+        ~{ingredient.weight_g}g
+      </Text>
+    </View>
+    <View style={styles.ingredientCalories}>
+      <Text style={[styles.ingredientCalValue, { color: theme.text }]}>
+        ~{ingredient.calories_kcal}
+      </Text>
+      <Text style={[styles.ingredientCalLabel, { color: theme.textMuted }]}>
+        kcal
+      </Text>
+    </View>
+  </View>
+);
 
 const styles = StyleSheet.create({
   ingredientCard: {
@@ -92,9 +76,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
-  },
-  ingredientEmoji: {
-    fontSize: 24,
   },
   ingredientInfo: {
     flex: 1,

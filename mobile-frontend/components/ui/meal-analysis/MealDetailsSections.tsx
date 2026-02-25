@@ -1,9 +1,8 @@
 import React from "react";
-import { StyleSheet, Text, View, ScrollView, Dimensions } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { NutritionData } from "../../../utils/api";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+import { DEFAULT_DAILY_GOALS } from "../../../constants/nutrition";
 
 interface CardProps {
   theme: any;
@@ -53,9 +52,18 @@ export const NutritionalOverviewCard = ({
   theme,
   showBadge = false,
 }: NutritionalOverviewCardProps) => {
-  const proteinPercent = Math.min((nutrition.protein_g / 140) * 100, 100);
-  const carbsPercent = Math.min((nutrition.carbs_g / 250) * 100, 100);
-  const fatsPercent = Math.min((nutrition.fats_g / 70) * 100, 100);
+  const proteinPercent = Math.min(
+    (nutrition.protein_g / DEFAULT_DAILY_GOALS.protein_g) * 100,
+    100
+  );
+  const carbsPercent = Math.min(
+    (nutrition.carbs_g / DEFAULT_DAILY_GOALS.carbs_g) * 100,
+    100
+  );
+  const fatsPercent = Math.min(
+    (nutrition.fats_g / DEFAULT_DAILY_GOALS.fats_g) * 100,
+    100
+  );
 
   return (
     <View
@@ -114,7 +122,7 @@ export const NutritionalOverviewCard = ({
             <Text style={[styles.macroProgressValue, { color: theme.text }]}>
               {nutrition.protein_g}g{" "}
               <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                / 140g
+                / {DEFAULT_DAILY_GOALS.protein_g}g
               </Text>
             </Text>
           </View>
@@ -142,7 +150,7 @@ export const NutritionalOverviewCard = ({
             <Text style={[styles.macroProgressValue, { color: theme.text }]}>
               {nutrition.carbs_g}g{" "}
               <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                / 250g
+                / {DEFAULT_DAILY_GOALS.carbs_g}g
               </Text>
             </Text>
           </View>
@@ -170,7 +178,7 @@ export const NutritionalOverviewCard = ({
             <Text style={[styles.macroProgressValue, { color: theme.text }]}>
               {nutrition.fats_g}g{" "}
               <Text style={{ color: theme.textMuted, fontWeight: "400" }}>
-                / 70g
+                / {DEFAULT_DAILY_GOALS.fats_g}g
               </Text>
             </Text>
           </View>
@@ -188,58 +196,6 @@ export const NutritionalOverviewCard = ({
             />
           </View>
         </View>
-      </View>
-
-      {/* Micronutrients */}
-      <View style={styles.micronutrientSection}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.micronutrientScroll}
-        >
-          <View
-            style={[
-              styles.microChip,
-              {
-                backgroundColor: theme.isDark ? "#1e293b" : "#f8fafc",
-                borderColor: theme.isDark ? "#334155" : "#e2e8f0",
-              },
-            ]}
-          >
-            <View style={[styles.microDot, { backgroundColor: "#22c55e" }]} />
-            <Text style={[styles.microText, { color: theme.text }]}>
-              Fiber 8g
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.microChip,
-              {
-                backgroundColor: theme.isDark ? "#1e293b" : "#f8fafc",
-                borderColor: theme.isDark ? "#334155" : "#e2e8f0",
-              },
-            ]}
-          >
-            <View style={[styles.microDot, { backgroundColor: "#eab308" }]} />
-            <Text style={[styles.microText, { color: theme.text }]}>
-              Iron 15%
-            </Text>
-          </View>
-          <View
-            style={[
-              styles.microChip,
-              {
-                backgroundColor: theme.isDark ? "#1e293b" : "#f8fafc",
-                borderColor: theme.isDark ? "#334155" : "#e2e8f0",
-              },
-            ]}
-          >
-            <View style={[styles.microDot, { backgroundColor: "#f87171" }]} />
-            <Text style={[styles.microText, { color: theme.text }]}>
-              Sodium 420mg
-            </Text>
-          </View>
-        </ScrollView>
       </View>
     </View>
   );
@@ -399,33 +355,6 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 50,
   },
-  micronutrientSection: {
-    marginTop: 20,
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0, 0, 0, 0.05)",
-  },
-  micronutrientScroll: {
-    gap: 8,
-  },
-  microChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 8,
-    borderWidth: 1,
-  },
-  microDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  microText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
   macroGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -433,7 +362,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   macroItem: {
-    width: (SCREEN_WIDTH - 52) / 2,
+    flex: 1,
+    minWidth: "40%",
     padding: 16,
     borderRadius: 20,
     borderWidth: 1,

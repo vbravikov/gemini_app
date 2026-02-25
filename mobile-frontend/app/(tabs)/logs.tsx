@@ -1,35 +1,181 @@
+import { CollapsibleHeader } from "@/components/ui/base/CollapsibleHeader";
+import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { useTheme } from "@/constants/theme";
-import { useMealLogs } from "@/hooks/useMealLogs";
+import { MealLog, useMealLogs } from "@/hooks/useMealLogs";
 import { MaterialIcons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { Link, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
-  Alert,
+  Dimensions,
+  FlatList,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import Animated, {
-  Extrapolate,
-  FadeInDown,
-  interpolate,
+  FadeIn,
   useAnimatedScrollHandler,
-  useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
 
-const HEADER_EXPANDED_HEIGHT = 210;
-const HEADER_COLLAPSED_HEIGHT = 150; // Increased to accommodate 80px buttons + padding
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<MealLog[]>);
 
+const HEADER_EXPANDED_HEIGHT = 210;
+const HEADER_COLLAPSED_HEIGHT = 150;
+const GAP = 10;
+const H_PAD = 20;
+const SCREEN_W = Dimensions.get("window").width;
+const CELL_SIZE = (SCREEN_W - H_PAD * 2 - GAP) / 2;
+
+// ---------------------------------------------------------------------------
+// Photo grid cell
+// ---------------------------------------------------------------------------
+const GridCell = ({
+  log,
+  theme,
+  router,
+  index,
+}: {
+  log: MealLog;
+  theme: ReturnType<typeof useTheme>;
+  router: ReturnType<typeof useRouter>;
+  index: number;
+}) => (
+  <Animated.View entering={FadeIn.delay(index * 60)} style={cellStyles.wrap}>
+    <Link href={{ pathname: "/log-details", params: { id: log.id } }} asChild>
+      <Link.Trigger>
+        <TouchableOpacity activeOpacity={0.88} style={cellStyles.touch}>
+          {/* Full-bleed photo */}
+          <Image
+            source={{ uri: log.imageUri }}
+            style={cellStyles.photo}
+            contentFit="cover"
+          />
+
+          {/* Gradient scrim at bottom */}
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.72)"]}
+            style={cellStyles.scrim}
+          />
+
+          {/* Calorie badge — top right */}
+          <View style={cellStyles.calBadge}>
+            <Text style={cellStyles.calText}>
+              {log.nutrition.calories_kcal}
+            </Text>
+            <Text style={cellStyles.calUnit}>kcal</Text>
+          </View>
+
+          {/* Name + time at bottom */}
+          <View style={cellStyles.footer}>
+            <Text style={cellStyles.dishName} numberOfLines={2}>
+              {log.nutrition.dish_name ?? "Meal"}
+            </Text>
+            <Text style={cellStyles.time}>
+              {new Date(log.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </Link.Trigger>
+      <Link.Preview />
+      <Link.Menu>
+        <Link.MenuAction
+          title="View"
+          icon="eye"
+          onPress={() =>
+            router.push({ pathname: "/log-details", params: { id: log.id } })
+          }
+        />
+        <Link.MenuAction
+          title="Delete"
+          icon="trash"
+          destructive
+          onPress={() => {
+            /* deleteLog handled in parent */
+          }}
+        />
+      </Link.Menu>
+    </Link>
+  </Animated.View>
+);
+
+const cellStyles = StyleSheet.create({
+  wrap: {
+    width: CELL_SIZE,
+    height: CELL_SIZE * 1.2,
+    borderRadius: 22,
+    overflow: "hidden",
+  },
+  touch: {
+    flex: 1,
+  },
+  photo: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  scrim: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "60%",
+  },
+  calBadge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    alignItems: "center",
+  },
+  calText: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "bold",
+    lineHeight: 15,
+  },
+  calUnit: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 9,
+    fontFamily: "medium",
+    lineHeight: 10,
+  },
+  footer: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    right: 10,
+    gap: 2,
+  },
+  dishName: {
+    color: "#fff",
+    fontSize: 13,
+    fontFamily: "bold",
+    lineHeight: 17,
+  },
+  time: {
+    color: "rgba(255,255,255,0.65)",
+    fontSize: 11,
+    fontFamily: "medium",
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Main screen
+// ---------------------------------------------------------------------------
 export default function LogsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const { getLogsForDate, getDailyTotals, deleteLog } = useMealLogs();
+  const { getLogsForDate, getDailyTotals } = useMealLogs();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
   const scrollY = useSharedValue(0);
@@ -43,8 +189,10 @@ export default function LogsScreen() {
     [selectedDate, getDailyTotals],
   );
 
-  const CALORIE_GOAL = 2000;
-  const calorieProgress = Math.min(totals.calories / CALORIE_GOAL, 1);
+  const calorieProgress = Math.min(
+    totals.calories / DEFAULT_DAILY_GOALS.calories_kcal,
+    1,
+  );
 
   const dateStrip = useMemo(() => {
     return Array.from({ length: 14 })
@@ -56,20 +204,14 @@ export default function LogsScreen() {
       .reverse();
   }, []);
 
-  const confirmDelete = (id: string) => {
-    Alert.alert(
-      "Delete Log",
-      "Are you sure you want to remove this meal from your history?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => await deleteLog(id),
-        },
-      ],
-    );
-  };
+  // Pair logs into rows of 2 for the grid
+  const gridRows = useMemo(() => {
+    const rows: MealLog[][] = [];
+    for (let i = 0; i < dayLogs.length; i += 2) {
+      rows.push(dayLogs.slice(i, i + 2));
+    }
+    return rows;
+  }, [dayLogs]);
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -77,365 +219,303 @@ export default function LogsScreen() {
     },
   });
 
-  const titleAnimatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      scrollY.value,
-      [0, 60],
-      [1, 0],
-      Extrapolate.CLAMP,
-    );
-    const translateY = interpolate(
-      scrollY.value,
-      [0, 60],
-      [0, -20],
-      Extrapolate.CLAMP,
-    );
-    return {
-      opacity,
-      transform: [{ translateY }],
-    };
-  });
+  const renderItem = useCallback(
+    ({ item: row, index: rowIdx }: { item: MealLog[]; index: number }) => (
+      <View style={gridStyles.row}>
+        {row.map((log, colIdx) => (
+          <GridCell
+            key={log.id}
+            log={log}
+            theme={theme}
+            router={router}
+            index={rowIdx * 2 + colIdx}
+          />
+        ))}
+        {/* Spacer when odd number of items */}
+        {row.length === 1 && <View style={{ width: CELL_SIZE }} />}
+      </View>
+    ),
+    [theme, router],
+  );
 
-  const headerContainerStyle = useAnimatedStyle(() => {
-    const height = interpolate(
-      scrollY.value,
-      [0, 100],
-      [HEADER_EXPANDED_HEIGHT, HEADER_COLLAPSED_HEIGHT],
-      Extrapolate.CLAMP,
-    );
-    return {
-      height,
-    };
-  });
+  const listHeader = useMemo(
+    () => (
+      <View style={gridStyles.listHeader}>
+        {/* Stats strip */}
+        <View style={gridStyles.statsStrip}>
+          <StatChip
+            value={`${totals.calories}`}
+            unit="kcal"
+            label="Calories"
+            color={theme.tint}
+            theme={theme}
+          />
+          <View
+            style={[
+              gridStyles.divider,
+              {
+                backgroundColor: theme.isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.07)",
+              },
+            ]}
+          />
+          <StatChip
+            value={`${totals.protein}`}
+            unit="g"
+            label="Protein"
+            color="#3b82f6"
+            theme={theme}
+          />
+          <View
+            style={[
+              gridStyles.divider,
+              {
+                backgroundColor: theme.isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.07)",
+              },
+            ]}
+          />
+          <StatChip
+            value={`${totals.carbs}`}
+            unit="g"
+            label="Carbs"
+            color="#f97316"
+            theme={theme}
+          />
+          <View
+            style={[
+              gridStyles.divider,
+              {
+                backgroundColor: theme.isDark
+                  ? "rgba(255,255,255,0.08)"
+                  : "rgba(0,0,0,0.07)",
+              },
+            ]}
+          />
+          <StatChip
+            value={`${totals.fats}`}
+            unit="g"
+            label="Fats"
+            color="#eab308"
+            theme={theme}
+          />
+        </View>
 
-  const dateStripAnimatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      scrollY.value,
-      [0, 100],
-      [0, -60], // Move date strip up more to utilize space freed by Journal text
-      Extrapolate.CLAMP,
-    );
-    return {
-      transform: [{ translateY }],
-    };
-  });
+        {/* Progress bar */}
+        <View
+          style={[
+            gridStyles.progressTrack,
+            { backgroundColor: theme.isDark ? "#334155" : "#f1f5f9" },
+          ]}
+        >
+          <View
+            style={[
+              gridStyles.progressFill,
+              {
+                backgroundColor: theme.tint,
+                width: `${calorieProgress * 100}%`,
+              },
+            ]}
+          />
+        </View>
+
+        {/* Section row */}
+        <View style={gridStyles.sectionRow}>
+          <Text style={[gridStyles.sectionTitle, { color: theme.text }]}>
+            {selectedDate.toDateString() === new Date().toDateString()
+              ? "Today"
+              : selectedDate.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+            {dayLogs.length > 0 && (
+              <Text
+                style={{
+                  color: theme.textMuted,
+                  fontFamily: "medium",
+                  fontSize: 15,
+                }}
+              >
+                {" · "}
+                {dayLogs.length} meal{dayLogs.length !== 1 ? "s" : ""}
+              </Text>
+            )}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/camera")}
+            style={[gridStyles.addBtn, { backgroundColor: theme.tint }]}
+          >
+            <MaterialIcons name="add" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    ),
+    [theme, totals, calorieProgress, selectedDate, dayLogs.length, router],
+  );
+
+  const listEmpty = useMemo(
+    () => (
+      <View style={gridStyles.emptyState}>
+        <MaterialIcons
+          name="photo-library"
+          size={48}
+          color={theme.tint}
+          style={{ opacity: 0.4 }}
+        />
+        <Text style={[gridStyles.emptyText, { color: theme.textMuted }]}>
+          {selectedDate.toDateString() === new Date().toDateString()
+            ? "No meals yet — scan one above"
+            : "No entries for this date"}
+        </Text>
+      </View>
+    ),
+    [theme, selectedDate],
+  );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Animated Sticky Header */}
-      <Animated.View style={[styles.headerContainer, headerContainerStyle]}>
-        <BlurView
-          intensity={50}
-          tint={theme.isDark ? "dark" : "light"}
-          style={StyleSheet.absoluteFill}
-          experimentalBlurMethod="dimezisBlurView"
-        />
-
-        <Animated.View style={[styles.headerTop, titleAnimatedStyle]}>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Journal
-          </Text>
-          <TouchableOpacity style={styles.calendarButton}>
-            <MaterialIcons name="event" size={24} color={theme.text} />
-          </TouchableOpacity>
-        </Animated.View>
-
-        <Animated.View
-          style={[styles.dateStripWrapper, dateStripAnimatedStyle]}
+    <View style={[gridStyles.container, { backgroundColor: theme.background }]}>
+      <CollapsibleHeader
+        scrollY={scrollY}
+        expandedHeight={HEADER_EXPANDED_HEIGHT}
+        collapsedHeight={HEADER_COLLAPSED_HEIGHT}
+        title="Journal"
+        titleColor={theme.text}
+        backgroundColor={theme.background}
+        tint={theme.isDark ? "dark" : "light"}
+        statusBarHeight={StatusBar.currentHeight ?? 56}
+      >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={gridStyles.dateStrip}
+          ref={(ref) => ref?.scrollToEnd({ animated: false })}
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.dateStrip}
-            ref={(ref) => ref?.scrollToEnd({ animated: false })}
-          >
-            {dateStrip.map((date, i) => {
-              const isSelected =
-                date.toDateString() === selectedDate.toDateString();
-              const isToday = date.toDateString() === new Date().toDateString();
-              return (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => setSelectedDate(date)}
-                  style={[
-                    styles.dateItem,
-                    isSelected && {
-                      backgroundColor: theme.tint,
+          {dateStrip.map((date, i) => {
+            const isSelected =
+              date.toDateString() === selectedDate.toDateString();
+            const isToday = date.toDateString() === new Date().toDateString();
+            return (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setSelectedDate(date)}
+                style={[
+                  gridStyles.dateItem,
+                  isSelected && {
+                    backgroundColor: theme.tint,
+                    borderColor: theme.tint,
+                  },
+                  !isSelected &&
+                    isToday && {
                       borderColor: theme.tint,
+                      borderWidth: 2,
                     },
-                    !isSelected &&
-                      isToday && { borderColor: theme.tint, borderWidth: 2 },
+                ]}
+              >
+                <Text
+                  style={[
+                    gridStyles.dateDay,
+                    {
+                      color: isSelected
+                        ? theme.isDark
+                          ? "#000"
+                          : "#fff"
+                        : theme.textMuted,
+                    },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.dateDay,
-                      {
-                        color: isSelected
-                          ? theme.isDark
-                            ? "#000"
-                            : "#fff"
-                          : theme.textMuted,
-                      },
-                    ]}
-                  >
-                    {date.toLocaleDateString("en-US", { weekday: "short" })}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dateNumber,
-                      {
-                        color: isSelected
-                          ? theme.isDark
-                            ? "#000"
-                            : "#fff"
-                          : theme.text,
-                      },
-                    ]}
-                  >
-                    {date.getDate()}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </Animated.View>
-        <LinearGradient
-          colors={[
-            theme.isDark ? "rgba(0,0,0,0)" : "rgba(255,255,255,0)",
-            theme.background,
-          ]}
-          style={styles.headerBottomGradient}
-        />
-      </Animated.View>
+                  {date.toLocaleDateString("en-US", { weekday: "short" })}
+                </Text>
+                <Text
+                  style={[
+                    gridStyles.dateNumber,
+                    {
+                      color: isSelected
+                        ? theme.isDark
+                          ? "#000"
+                          : "#fff"
+                        : theme.text,
+                    },
+                  ]}
+                >
+                  {date.getDate()}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </CollapsibleHeader>
 
-      <Animated.ScrollView
+      <AnimatedFlatList
+        data={gridRows}
+        keyExtractor={(_, i) => String(i)}
+        renderItem={renderItem}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
         contentContainerStyle={[
-          styles.scrollContent,
+          gridStyles.scrollContent,
           { paddingTop: HEADER_EXPANDED_HEIGHT },
         ]}
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-      >
-        <Animated.View
-          entering={FadeInDown.delay(100)}
-          style={[
-            styles.dashboardCard,
-            {
-              backgroundColor: theme.card,
-              borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-            },
-          ]}
-        >
-          <View style={styles.dashboardMain}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.dashboardLabel, { color: theme.textMuted }]}>
-                DAILY BUDGET
-              </Text>
-              <Text style={[styles.dashboardValue, { color: theme.text }]}>
-                {totals.calories}{" "}
-                <Text style={styles.dashboardUnit}>/ {CALORIE_GOAL} kcal</Text>
-              </Text>
-              <View
-                style={[
-                  styles.progressBarBase,
-                  {
-                    backgroundColor: theme.isDark ? "#334155" : "#f1f5f9",
-                    marginTop: 12,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      backgroundColor: theme.tint,
-                      width: `${calorieProgress * 100}%`,
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.macroRow}>
-            <MacroSummary
-              label="Protein"
-              value={totals.protein}
-              goal={140}
-              color="#3b82f6"
-              theme={theme}
-            />
-            <MacroSummary
-              label="Carbs"
-              value={totals.carbs}
-              goal={250}
-              color="#f97316"
-              theme={theme}
-            />
-            <MacroSummary
-              label="Fats"
-              value={totals.fats}
-              goal={70}
-              color="#eab308"
-              theme={theme}
-            />
-          </View>
-        </Animated.View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            {selectedDate.toDateString() === new Date().toDateString()
-              ? "Today's Entries"
-              : "Entries for " +
-                selectedDate.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-          </Text>
-          <TouchableOpacity onPress={() => router.push("/")}>
-            <Text style={[styles.addText, { color: theme.tint }]}>
-              + Add New
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {dayLogs.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialIcons
-              name="auto-awesome"
-              size={48}
-              color={theme.tint}
-              style={{ opacity: 0.5 }}
-            />
-            <Text style={[styles.emptyStateText, { color: theme.textMuted }]}>
-              {selectedDate.toDateString() === new Date().toDateString()
-                ? "Snap a photo of your meal to start tracking!"
-                : "No entries for this date."}
-            </Text>
-          </View>
-        ) : (
-          dayLogs.map((log, index) => (
-            <Animated.View
-              key={log.id}
-              entering={FadeInDown.delay(200 + index * 100)}
-            >
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() =>
-                  router.push({
-                    pathname: "/log-details",
-                    params: { id: log.id },
-                  })
-                }
-                onLongPress={() => confirmDelete(log.id)}
-                style={[
-                  styles.logCard,
-                  {
-                    backgroundColor: theme.card,
-                    borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-                  },
-                ]}
-              >
-                <Image
-                  source={{ uri: log.imageUri }}
-                  style={styles.logImage}
-                  contentFit="cover"
-                />
-                <View style={styles.logInfo}>
-                  <Text style={[styles.logTime, { color: theme.textMuted }]}>
-                    {new Date(log.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Text>
-                  <Text
-                    style={[styles.logTitle, { color: theme.text }]}
-                    numberOfLines={1}
-                  >
-                    {log.nutrition.ingredients[0] || "Analyzed Meal"}
-                  </Text>
-                  <Text style={[styles.logMacros, { color: theme.textMuted }]}>
-                    {log.nutrition.calories_kcal} kcal •{" "}
-                    {log.nutrition.protein_g}g protein
-                  </Text>
-                </View>
-                <MaterialIcons
-                  name="chevron-right"
-                  size={20}
-                  color={theme.textMuted}
-                />
-              </TouchableOpacity>
-            </Animated.View>
-          ))
-        )}
-      </Animated.ScrollView>
+      />
     </View>
   );
 }
 
-const MacroSummary = ({ label, value, goal, color, theme }: any) => {
-  const progress = Math.min(value / goal, 1);
-  return (
-    <View style={styles.macroItem}>
-      <Text style={[styles.macroLabel, { color: theme.textMuted }]}>
-        {label}
-      </Text>
-      <Text style={[styles.macroValue, { color: theme.text }]}>{value}g</Text>
-      <View
-        style={[
-          styles.macroBarBase,
-          { backgroundColor: theme.isDark ? "#334155" : "#f1f5f9" },
-        ]}
-      >
-        <View
-          style={[
-            styles.macroBarFill,
-            { backgroundColor: color, width: `${progress * 100}%` },
-          ]}
-        />
-      </View>
-    </View>
-  );
-};
+// ---------------------------------------------------------------------------
+// Stat chip
+// ---------------------------------------------------------------------------
+const StatChip = ({
+  value,
+  unit,
+  label,
+  color,
+  theme,
+}: {
+  value: string;
+  unit: string;
+  label: string;
+  color: string;
+  theme: ReturnType<typeof useTheme>;
+}) => (
+  <View style={chipStyles.chip}>
+    <Text style={[chipStyles.value, { color: theme.text }]}>
+      {value}
+      <Text style={[chipStyles.unit, { color: color }]}>{unit}</Text>
+    </Text>
+    <Text style={[chipStyles.label, { color: theme.textMuted }]}>{label}</Text>
+  </View>
+);
 
-const styles = StyleSheet.create({
-  container: {
+const chipStyles = StyleSheet.create({
+  chip: {
     flex: 1,
-  },
-  headerContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-    overflow: "hidden",
-    paddingTop: 60,
-  },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    zIndex: 11,
+    gap: 2,
   },
-  headerTitle: {
-    fontSize: 32,
+  value: {
+    fontSize: 17,
     fontFamily: "bold",
   },
-  calendarButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.03)",
+  unit: {
+    fontSize: 11,
+    fontFamily: "semibold",
   },
-  dateStripWrapper: {
-    zIndex: 12,
+  label: {
+    fontSize: 10,
+    fontFamily: "medium",
+    letterSpacing: 0.3,
   },
+});
+
+// ---------------------------------------------------------------------------
+// Styles
+// ---------------------------------------------------------------------------
+const gridStyles = StyleSheet.create({
+  container: { flex: 1 },
   dateStrip: {
     paddingHorizontal: 15,
     gap: 10,
@@ -460,135 +540,58 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: "bold",
   },
-  headerBottomGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 20,
-  },
   scrollContent: {
-    padding: 20,
     paddingBottom: 120,
   },
-  dashboardCard: {
-    borderRadius: 28,
-    padding: 24,
-    borderWidth: 1,
-    marginBottom: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
+  listHeader: {
+    paddingHorizontal: H_PAD,
+    paddingTop: 16,
+    gap: 14,
+    marginBottom: 4,
   },
-  dashboardMain: {
+  statsStrip: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 28,
+    alignItems: "center",
+    borderRadius: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  dashboardLabel: {
-    fontSize: 11,
-    fontFamily: "semibold",
-    letterSpacing: 1.5,
-    marginBottom: 6,
+  divider: {
+    width: 1,
+    height: 28,
+    marginHorizontal: 4,
   },
-  dashboardValue: {
-    fontSize: 36,
-    fontFamily: "bold",
-  },
-  dashboardUnit: {
-    fontSize: 14,
-    fontFamily: "medium",
-    opacity: 0.4,
-  },
-  progressBarBase: {
-    height: 10,
-    borderRadius: 5,
+  progressTrack: {
+    height: 5,
+    borderRadius: 3,
     overflow: "hidden",
-    width: "100%",
+    marginHorizontal: 4,
   },
-  progressBarFill: {
+  progressFill: {
     height: "100%",
-    borderRadius: 5,
+    borderRadius: 3,
   },
-  macroRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(0,0,0,0.05)",
-    paddingTop: 24,
-    gap: 12,
-  },
-  macroItem: {
-    flex: 1,
-    gap: 4,
-  },
-  macroLabel: {
-    fontSize: 10,
-    fontFamily: "semibold",
-    letterSpacing: 0.5,
-  },
-  macroValue: {
-    fontSize: 15,
-    fontFamily: "bold",
-  },
-  macroBarBase: {
-    height: 4,
-    borderRadius: 2,
-    overflow: "hidden",
-    marginTop: 4,
-  },
-  macroBarFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  sectionHeader: {
+  sectionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 22,
     fontFamily: "bold",
   },
-  addText: {
-    fontFamily: "semibold",
-    fontSize: 14,
-  },
-  logCard: {
-    flexDirection: "row",
-    padding: 12,
-    borderRadius: 24,
-    borderWidth: 1,
+  addBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 14,
-    gap: 16,
   },
-  logImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-  },
-  logInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  logTime: {
-    fontSize: 11,
-    fontFamily: "semibold",
-    opacity: 0.6,
-  },
-  logTitle: {
-    fontSize: 17,
-    fontFamily: "bold",
-  },
-  logMacros: {
-    fontSize: 13,
-    fontFamily: "medium",
-    opacity: 0.7,
+  row: {
+    flexDirection: "row",
+    gap: GAP,
+    paddingHorizontal: H_PAD,
+    marginBottom: GAP,
   },
   emptyState: {
     alignItems: "center",
@@ -596,11 +599,10 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingHorizontal: 40,
   },
-  emptyStateText: {
+  emptyText: {
     fontSize: 15,
     fontFamily: "medium",
     textAlign: "center",
     lineHeight: 22,
-    opacity: 0.8,
   },
 });

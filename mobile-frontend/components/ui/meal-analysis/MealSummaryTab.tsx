@@ -31,7 +31,7 @@ export const MealSummaryTab = ({ markdown, theme }: MealSummaryTabProps) => {
 
 const styles = StyleSheet.create({
   tabContent: {
-    padding: 20,
+    // padding: 20,
     paddingBottom: 40,
   },
   sectionTitle: {

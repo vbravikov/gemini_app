@@ -5,7 +5,6 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { BlurView } from "expo-blur";
 import { Stack } from "expo-router";
 import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -79,6 +78,14 @@ export default function RootLayout() {
               headerTransparent: true,
               headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",
               headerShown: true,
+            }}
+          />
+          <Stack.Screen
+            name="camera"
+            options={{
+              headerShown: false,
+              presentation: "fullScreenModal",
+              animation: "slide_from_bottom",
             }}
           />
         </Stack>

@@ -1,6 +1,7 @@
 import { BlurView } from "expo-blur";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  Dimensions,
   FlatList,
   Platform,
   StyleSheet,
@@ -30,6 +31,7 @@ import type {
   TopTabsProps,
 } from "./types";
 
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 const AnimatedFlatList = Animated.createAnimatedComponent(
   FlatList as new () => FlatList<Tab>,
@@ -86,16 +88,15 @@ const ContentItem: React.FC<ContentItemProps> = ({
         styles.contentWrapper,
         { width: screenWidth },
         animatedViewStylez,
-        {
-          padding: 20,
-        },
       ]}
     >
-      {item.contentComponent ? (
-        item.contentComponent
-      ) : (
-        <Text style={styles.contentText}>{item.content}</Text>
-      )}
+      <View style={styles.contentScrollContainer}>
+        {item.contentComponent ? (
+          item.contentComponent
+        ) : (
+          <Text style={styles.contentText}>{item.content}</Text>
+        )}
+      </View>
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         {Platform.OS === "ios" && (
           <AnimatedBlurView
@@ -411,9 +412,7 @@ export const TopTabs: React.FC<TopTabsProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: {},
   tabBarContainer: {},
   tabItem: {
     paddingHorizontal: TAB_PADDING,
@@ -428,12 +427,13 @@ const styles = StyleSheet.create({
     left: 0,
     borderRadius: 1.5,
   },
-  contentFlatList: {
-    flex: 1,
-  },
+  contentFlatList: {},
   contentWrapper: {
-    flex: 1,
+    minHeight: SCREEN_HEIGHT,
     position: "relative",
+  },
+  contentScrollContainer: {
+    padding: 20,
   },
   contentText: {
     fontSize: 18,
