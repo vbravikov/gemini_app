@@ -73,7 +73,6 @@ const CONFIDENCE_CONFIG = {
 
 const DetailsTab = ({
   nutrition,
-  theme,
   goals,
   onEditIngredient,
   onAddIngredient,
@@ -81,17 +80,17 @@ const DetailsTab = ({
   onEditWeight,
 }: {
   nutrition: NutritionData;
-  theme: any;
   goals: DailyGoals;
   onEditIngredient: (ingredient: Ingredient) => void;
   onAddIngredient: () => void;
   onEditMacros: () => void;
   onEditWeight: () => void;
-}) => (
+}) => {
+  const theme = useTheme();
+  return (
   <View style={styles.tabContent}>
     <PortionWeightCard
       weight={nutrition.portion_size_g}
-      theme={theme}
       onPress={onEditWeight}
     />
 
@@ -100,7 +99,6 @@ const DetailsTab = ({
     </Text>
     <NutritionalOverviewCard
       nutrition={nutrition}
-      theme={theme}
       showBadge={true}
       goals={goals}
     />
@@ -110,7 +108,6 @@ const DetailsTab = ({
     </Text>
     <MacronutrientsGrid
       nutrition={nutrition}
-      theme={theme}
       onPress={onEditMacros}
     />
 
@@ -122,7 +119,6 @@ const DetailsTab = ({
         <IngredientCard
           key={index}
           ingredient={ingredient}
-          theme={theme}
           onEdit={onEditIngredient}
         />
       ))}
@@ -142,7 +138,8 @@ const DetailsTab = ({
       </Text>
     </TouchableOpacity>
   </View>
-);
+  );
+};
 
 const MealInfo = () => {
   const params = useLocalSearchParams<{ photoUri: string }>();
@@ -296,7 +293,6 @@ const MealInfo = () => {
         contentComponent: (
           <MealSummaryTab
             nutrition={derivedNutrition}
-            theme={theme}
             goals={goals}
           />
         ),
@@ -327,7 +323,6 @@ const MealInfo = () => {
         contentComponent: (
           <DetailsTab
             nutrition={derivedNutrition}
-            theme={theme}
             goals={goals}
             onEditIngredient={setEditingIngredient}
             onAddIngredient={() => setShowAddSheet(true)}
@@ -435,7 +430,6 @@ const MealInfo = () => {
       <IngredientEditSheet
         visible={editingIngredient !== null}
         ingredient={editingIngredient}
-        theme={theme}
         onClose={() => setEditingIngredient(null)}
         onSave={handleSaveIngredient}
         onDelete={handleDeleteIngredient}
@@ -444,7 +438,6 @@ const MealInfo = () => {
       {/* Add ingredient sheet */}
       <AddIngredientSheet
         visible={showAddSheet}
-        theme={theme}
         onClose={() => setShowAddSheet(false)}
         onAdd={handleAddIngredient}
       />
@@ -454,7 +447,6 @@ const MealInfo = () => {
         <MacroEditSheet
           visible={showMacroSheet}
           nutrition={derivedNutrition}
-          theme={theme}
           onClose={() => setShowMacroSheet(false)}
           onSave={handleSaveMacros}
         />
@@ -465,7 +457,6 @@ const MealInfo = () => {
         <WeightEditSheet
           visible={showWeightSheet}
           weight={derivedNutrition.portion_size_g}
-          theme={theme}
           onClose={() => setShowWeightSheet(false)}
           onSave={handleSaveWeight}
         />

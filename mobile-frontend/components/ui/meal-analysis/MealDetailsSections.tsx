@@ -4,6 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { NutritionData } from "../../../utils/api";
 import { DEFAULT_DAILY_GOALS } from "../../../constants/nutrition";
 import { DailyGoals } from "../../../hooks/useDailyGoals";
+import { useTheme } from "../../../constants/theme";
 
 type Verdict = NonNullable<NutritionData["diet_verdict"]>;
 
@@ -27,11 +28,7 @@ const BADGE_CONFIG: Record<
   limit: { label: "Limit", color: "#dc2626", bg: "#fee2e2", bgDark: "#2d0a0a" },
 };
 
-interface CardProps {
-  theme: any;
-}
-
-interface PortionWeightCardProps extends CardProps {
+interface PortionWeightCardProps {
   weight: number;
   label?: string;
   onPress?: () => void;
@@ -39,50 +36,60 @@ interface PortionWeightCardProps extends CardProps {
 
 export const PortionWeightCard = ({
   weight,
-  theme,
   label = "Approx. Weight",
   onPress,
-}: PortionWeightCardProps) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={onPress ? 0.75 : 1}
-    disabled={!onPress}
-  >
-    <View
-      style={[
-        styles.detailCard,
-        {
-          backgroundColor: theme.card,
-          borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-          marginBottom: onPress ? 8 : 24,
-        },
-      ]}
+}: PortionWeightCardProps) => {
+  const theme = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={onPress ? 0.75 : 1}
+      disabled={!onPress}
     >
-      <MaterialIcons name="scale" size={24} color={theme.tint} />
-      <Text style={[styles.detailValue, { color: theme.text, marginLeft: 12 }]}>
-        {weight}g
-      </Text>
-      <Text
+      <View
         style={[
-          styles.detailLabel,
-          { color: theme.textMuted, marginLeft: "auto" },
+          styles.detailCard,
+          {
+            backgroundColor: theme.card,
+            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+            marginBottom: onPress ? 8 : 24,
+          },
         ]}
       >
-        {label}
-      </Text>
-    </View>
-    {onPress && (
-      <View style={[styles.editHint, { marginTop: 4, marginBottom: 24 }]}>
-        <MaterialIcons name="edit" size={12} color={theme.textMuted} />
-        <Text style={[styles.editHintText, { color: theme.textMuted }]}>
-          Tap to adjust weight
+        <MaterialIcons name="scale" size={24} color={theme.tint} />
+        <Text style={[styles.detailValue, { color: theme.text, marginLeft: 12 }]}>
+          {weight}g
         </Text>
+        <Text
+          style={[
+            styles.detailLabel,
+            { color: theme.textMuted, marginLeft: "auto" },
+          ]}
+        >
+          {label}
+        </Text>
+        {onPress && (
+          <MaterialIcons
+            name="edit"
+            size={16}
+            color={theme.textMuted}
+            style={{ marginLeft: 8 }}
+          />
+        )}
       </View>
-    )}
-  </TouchableOpacity>
-);
+      {onPress && (
+        <View style={[styles.editHint, { marginTop: 4, marginBottom: 24 }]}>
+          <MaterialIcons name="edit" size={12} color={theme.textMuted} />
+          <Text style={[styles.editHintText, { color: theme.textMuted }]}>
+            Tap to adjust weight
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
 
-interface NutritionalOverviewCardProps extends CardProps {
+interface NutritionalOverviewCardProps {
   nutrition: NutritionData;
   showBadge?: boolean;
   goals?: DailyGoals;
@@ -90,10 +97,10 @@ interface NutritionalOverviewCardProps extends CardProps {
 
 export const NutritionalOverviewCard = ({
   nutrition,
-  theme,
   showBadge = false,
   goals: goalsProp,
 }: NutritionalOverviewCardProps) => {
+  const theme = useTheme();
   const goals = goalsProp ?? DEFAULT_DAILY_GOALS;
   const proteinPercent = Math.min(
     (nutrition.protein_g / goals.protein_g) * 100,
@@ -242,83 +249,82 @@ interface MacroItemProps {
   value: string;
   icon: string;
   color: string;
-  theme: any;
 }
 
-const MacroItem = ({ label, value, icon, color, theme }: MacroItemProps) => (
-  <View
-    style={[
-      styles.macroItem,
-      {
-        backgroundColor: theme.card,
-        borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-      },
-    ]}
-  >
-    <View style={[styles.macroIconCircle, { backgroundColor: `${color}20` }]}>
-      <MaterialIcons name={icon as any} size={20} color={color} />
+const MacroItem = ({ label, value, icon, color }: MacroItemProps) => {
+  const theme = useTheme();
+  return (
+    <View
+      style={[
+        styles.macroItem,
+        {
+          backgroundColor: theme.card,
+          borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
+        },
+      ]}
+    >
+      <View style={[styles.macroIconCircle, { backgroundColor: `${color}20` }]}>
+        <MaterialIcons name={icon as any} size={20} color={color} />
+      </View>
+      <Text style={[styles.macroValueText, { color: theme.text }]}>{value}</Text>
+      <Text style={[styles.macroLabelText, { color: theme.textMuted }]}>
+        {label}
+      </Text>
     </View>
-    <Text style={[styles.macroValueText, { color: theme.text }]}>{value}</Text>
-    <Text style={[styles.macroLabelText, { color: theme.textMuted }]}>
-      {label}
-    </Text>
-  </View>
-);
+  );
+};
 
 export const MacronutrientsGrid = ({
   nutrition,
-  theme,
   onPress,
 }: {
   nutrition: NutritionData;
-  theme: any;
   onPress?: () => void;
-}) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={onPress ? 0.75 : 1}
-    disabled={!onPress}
-  >
-    <View style={styles.macroGrid}>
-      <MacroItem
-        label="Protein"
-        value={`${nutrition.protein_g}g`}
-        icon="fitness-center"
-        color="#3b82f6"
-        theme={theme}
-      />
-      <MacroItem
-        label="Carbs"
-        value={`${nutrition.carbs_g}g`}
-        icon="rice-bowl"
-        color="#f97316"
-        theme={theme}
-      />
-      <MacroItem
-        label="Fats"
-        value={`${nutrition.fats_g}g`}
-        icon="water-drop"
-        color="#eab308"
-        theme={theme}
-      />
-      <MacroItem
-        label="Calories"
-        value={`${nutrition.calories_kcal}`}
-        icon="local-fire-department"
-        color={theme.tint}
-        theme={theme}
-      />
-    </View>
-    {onPress && (
-      <View style={styles.editHint}>
-        <MaterialIcons name="edit" size={12} color={theme.textMuted} />
-        <Text style={[styles.editHintText, { color: theme.textMuted }]}>
-          Tap to adjust macros
-        </Text>
+}) => {
+  const theme = useTheme();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={onPress ? 0.75 : 1}
+      disabled={!onPress}
+    >
+      <View style={styles.macroGrid}>
+        <MacroItem
+          label="Protein"
+          value={`${nutrition.protein_g}g`}
+          icon="fitness-center"
+          color="#3b82f6"
+        />
+        <MacroItem
+          label="Carbs"
+          value={`${nutrition.carbs_g}g`}
+          icon="rice-bowl"
+          color="#f97316"
+        />
+        <MacroItem
+          label="Fats"
+          value={`${nutrition.fats_g}g`}
+          icon="water-drop"
+          color="#eab308"
+        />
+        <MacroItem
+          label="Calories"
+          value={`${nutrition.calories_kcal}`}
+          icon="local-fire-department"
+          color={theme.tint}
+        />
       </View>
-    )}
-  </TouchableOpacity>
-);
+      {onPress && (
+        <View style={styles.editHint}>
+          <MaterialIcons name="edit" size={12} color={theme.textMuted} />
+          <Text style={[styles.editHintText, { color: theme.textMuted }]}>
+            Tap to adjust macros
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   detailCard: {

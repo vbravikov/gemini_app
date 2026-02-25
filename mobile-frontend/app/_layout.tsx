@@ -1,4 +1,4 @@
-import { useTheme } from "@/constants/theme";
+import { AppThemeProvider, useTheme } from "@/constants/theme";
 import { useLoadedFonts } from "@/hooks/useLoadedFonts";
 import {
   DarkTheme,
@@ -46,59 +46,61 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colors.isDark ? DarkTheme : DefaultTheme}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack
-          screenOptions={{
-            contentStyle: {
-              backgroundColor: colors.isDark
-                ? DarkTheme.colors.background
-                : DefaultTheme.colors.background,
-            },
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="meal-info"
-            options={{
-              title: "Analysis Results",
-              presentation: "modal",
-              animation: "slide_from_bottom",
-              headerTransparent: true,
-              headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",
-              headerShown: true,
+    <AppThemeProvider>
+      <ThemeProvider value={colors.isDark ? DarkTheme : DefaultTheme}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <Stack
+            screenOptions={{
+              contentStyle: {
+                backgroundColor: colors.isDark
+                  ? DarkTheme.colors.background
+                  : DefaultTheme.colors.background,
+              },
             }}
-          />
-          <Stack.Screen
-            name="log-details"
-            options={{
-              title: "Log Entry",
-              presentation: "modal",
-              animation: "slide_from_bottom",
-              headerTransparent: true,
-              headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="camera"
-            options={{
-              headerShown: false,
-              presentation: "fullScreenModal",
-              animation: "slide_from_bottom",
-            }}
-          />
-          <Stack.Screen
-            name="edit-goals"
-            options={{
-              title: "Edit Daily Goals",
-              presentation: "modal",
-              animation: "slide_from_bottom",
-              headerTintColor: colors.isDark ? "#fff" : "rgba(0,0,0,0.8)",
-            }}
-          />
-        </Stack>
-      </GestureHandlerRootView>
-    </ThemeProvider>
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="meal-info"
+              options={{
+                title: "Analysis Results",
+                presentation: "modal",
+                animation: "slide_from_bottom",
+                headerTransparent: true,
+                headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",
+                headerShown: true,
+              }}
+            />
+            <Stack.Screen
+              name="log-details"
+              options={{
+                title: "Log Entry",
+                presentation: "modal",
+                animation: "slide_from_bottom",
+                headerTransparent: true,
+                headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",
+                headerShown: true,
+              }}
+            />
+            <Stack.Screen
+              name="camera"
+              options={{
+                headerShown: false,
+                presentation: "fullScreenModal",
+                animation: "slide_from_bottom",
+              }}
+            />
+            <Stack.Screen
+              name="edit-goals"
+              options={{
+                title: "Edit Daily Goals",
+                presentation: "modal",
+                animation: "slide_from_bottom",
+                headerTintColor: colors.isDark ? "#fff" : "rgba(0,0,0,0.8)",
+              }}
+            />
+          </Stack>
+        </GestureHandlerRootView>
+      </ThemeProvider>
+    </AppThemeProvider>
   );
 }

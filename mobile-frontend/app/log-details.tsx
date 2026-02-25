@@ -24,29 +24,28 @@ import type { DailyGoals } from "@/hooks/useDailyGoals";
 
 const DetailsTab = ({
   nutrition,
-  theme,
   goals,
 }: {
   nutrition: NutritionData;
-  theme: any;
   goals: DailyGoals;
-}) => (
+}) => {
+  const theme = useTheme();
+  return (
   <View style={styles.tabContent}>
     <PortionWeightCard
       weight={nutrition.portion_size_g}
-      theme={theme}
       label="Weight"
     />
 
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Nutritional Overview
     </Text>
-    <NutritionalOverviewCard nutrition={nutrition} theme={theme} goals={goals} />
+    <NutritionalOverviewCard nutrition={nutrition} goals={goals} />
 
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Macronutrients
     </Text>
-    <MacronutrientsGrid nutrition={nutrition} theme={theme} />
+    <MacronutrientsGrid nutrition={nutrition} />
 
     <Text style={[styles.sectionTitle, { color: theme.text }]}>
       Ingredients
@@ -56,12 +55,12 @@ const DetailsTab = ({
         <IngredientCard
           key={index}
           ingredient={ingredient}
-          theme={theme}
         />
       ))}
     </View>
   </View>
-);
+  );
+};
 
 const LogDetails = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -117,7 +116,7 @@ const LogDetails = () => {
           </View>
         ),
         contentComponent: (
-          <MealSummaryTab nutrition={log.nutrition} theme={theme} goals={goals} />
+          <MealSummaryTab nutrition={log.nutrition} goals={goals} />
         ),
       },
       {
@@ -144,7 +143,7 @@ const LogDetails = () => {
           </View>
         ),
         contentComponent: (
-          <DetailsTab nutrition={log.nutrition} theme={theme} goals={goals} />
+          <DetailsTab nutrition={log.nutrition} goals={goals} />
         ),
       },
     ];

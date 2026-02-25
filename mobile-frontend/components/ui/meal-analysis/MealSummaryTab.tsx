@@ -1,6 +1,7 @@
 import { NutritionData } from "@/utils/api";
 import { DailyGoals } from "@/hooks/useDailyGoals";
 import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
+import { useTheme } from "@/constants/theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -88,15 +89,14 @@ const MacroRow = ({
   goal,
   unit,
   color,
-  theme,
 }: {
   label: string;
   value: number;
   goal: number;
   unit: string;
   color: string;
-  theme: any;
 }) => {
+  const theme = useTheme();
   const pct = Math.min(value / goal, 1);
   const pctLabel = Math.round(pct * 100);
   return (
@@ -152,11 +152,11 @@ const macroStyles = StyleSheet.create({
 
 interface MealSummaryTabProps {
   nutrition: NutritionData;
-  theme: any;
   goals?: DailyGoals;
 }
 
-export const MealSummaryTab = ({ nutrition, theme, goals: goalsProp }: MealSummaryTabProps) => {
+export const MealSummaryTab = ({ nutrition, goals: goalsProp }: MealSummaryTabProps) => {
+  const theme = useTheme();
   const goals = goalsProp ?? DEFAULT_DAILY_GOALS;
   const verdict = nutrition.diet_verdict ?? "moderate";
   const cfg = VERDICT_CONFIG[verdict];
@@ -221,7 +221,6 @@ export const MealSummaryTab = ({ nutrition, theme, goals: goalsProp }: MealSumma
             goal={goals.calories_kcal}
             unit=" kcal"
             color={theme.tint}
-            theme={theme}
           />
           <MacroRow
             label="Protein"
@@ -229,7 +228,6 @@ export const MealSummaryTab = ({ nutrition, theme, goals: goalsProp }: MealSumma
             goal={goals.protein_g}
             unit="g"
             color="#3b82f6"
-            theme={theme}
           />
           <MacroRow
             label="Carbs"
@@ -237,7 +235,6 @@ export const MealSummaryTab = ({ nutrition, theme, goals: goalsProp }: MealSumma
             goal={goals.carbs_g}
             unit="g"
             color="#f97316"
-            theme={theme}
           />
           <MacroRow
             label="Fats"
@@ -245,7 +242,6 @@ export const MealSummaryTab = ({ nutrition, theme, goals: goalsProp }: MealSumma
             goal={goals.fats_g}
             unit="g"
             color="#eab308"
-            theme={theme}
           />
         </View>
       </View>

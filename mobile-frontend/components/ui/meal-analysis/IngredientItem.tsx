@@ -1,12 +1,12 @@
 import { ICON_FAMILY_MAP, resolveIcon } from "@/constants/ingredientIcons";
 import { Ingredient } from "@/utils/api";
+import { useTheme } from "@/constants/theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface IngredientCardProps {
   ingredient: Ingredient;
-  theme: any;
   onEdit?: (ingredient: Ingredient) => void;
 }
 
@@ -22,7 +22,9 @@ const IngredientIcon = ({
   return <IconComponent name={entry.name} size={22} color={color} />;
 };
 
-export const IngredientCard = ({ ingredient, theme, onEdit }: IngredientCardProps) => (
+export const IngredientCard = ({ ingredient, onEdit }: IngredientCardProps) => {
+  const theme = useTheme();
+  return (
   <View
     style={[
       styles.ingredientCard,
@@ -70,7 +72,8 @@ export const IngredientCard = ({ ingredient, theme, onEdit }: IngredientCardProp
       </TouchableOpacity>
     ) : null}
   </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   ingredientCard: {

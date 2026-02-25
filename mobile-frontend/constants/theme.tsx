@@ -1,3 +1,4 @@
+import React, { createContext, useContext } from "react";
 import { useColorScheme } from "react-native";
 
 /**
@@ -63,6 +64,21 @@ export const Colors = {
 
 export type Theme = typeof Colors.light;
 
+const ThemeContext = createContext<Theme>(Colors.light);
+
+/**
+ * Wrap the app root with this provider so any component can call
+ * useTheme() without needing theme prop drilling.
+ */
+export function AppThemeProvider({ children }: { children: React.ReactNode }) {
+  const colorScheme = useColorScheme() ?? "light";
+  return (
+    <ThemeContext.Provider value={Colors[colorScheme]}>
+      {children}
+    </ThemeContext.Provider>
+  );
+}
+
 export function useThemeColor(
   props: { light?: string; dark?: string },
   colorName: keyof typeof Colors.light & keyof typeof Colors.dark,
@@ -77,7 +93,7 @@ export function useThemeColor(
   }
 }
 
-export function useTheme() {
-  const colorScheme = useColorScheme() ?? "light";
-  return Colors[colorScheme];
+/** Returns the current theme object. Must be used inside AppThemeProvider. */
+export function useTheme(): Theme {
+  return useContext(ThemeContext);
 }

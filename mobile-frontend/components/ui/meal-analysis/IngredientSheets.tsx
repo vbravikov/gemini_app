@@ -29,7 +29,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Theme } from "@/constants/theme";
+import { useTheme } from "@/constants/theme";
 
 // ---------------------------------------------------------------------------
 // Shared field row
@@ -42,7 +42,6 @@ function FieldRow({
   keyboardType,
   onChangeText,
   inputRef,
-  theme,
 }: {
   label: string;
   defaultValue: string;
@@ -50,8 +49,8 @@ function FieldRow({
   keyboardType: "default" | "number-pad" | "decimal-pad";
   onChangeText: (v: string) => void;
   inputRef?: React.RefObject<TextInput | null>;
-  theme: Theme;
 }) {
+  const theme = useTheme();
   return (
     <View style={sharedStyles.fieldRow}>
       <Text style={[sharedStyles.fieldLabel, { color: theme.textMuted }]}>
@@ -97,7 +96,6 @@ function FieldRow({
 export interface IngredientEditSheetProps {
   visible: boolean;
   ingredient: Ingredient | null;
-  theme: Theme;
   onClose: () => void;
   onSave: (updated: Ingredient) => void;
   onDelete: (ingredient: Ingredient) => void;
@@ -106,11 +104,11 @@ export interface IngredientEditSheetProps {
 export function IngredientEditSheet({
   visible,
   ingredient,
-  theme,
   onClose,
   onSave,
   onDelete,
 }: IngredientEditSheetProps) {
+  const theme = useTheme();
   const sheetRef = useRef<TrueSheet>(null);
   const nameInputRef = useRef<TextInput>(null);
 
@@ -247,7 +245,6 @@ export function IngredientEditSheet({
             onChangeText={(v) => {
               draft.current = { ...draft.current, name: v };
             }}
-            theme={theme}
           />
           <View
             style={[
@@ -264,7 +261,6 @@ export function IngredientEditSheet({
               const n = parseInt(v, 10);
               if (!isNaN(n)) draft.current = { ...draft.current, weight_g: n };
             }}
-            theme={theme}
           />
           <View
             style={[
@@ -282,7 +278,6 @@ export function IngredientEditSheet({
               if (!isNaN(n))
                 draft.current = { ...draft.current, calories_kcal: n };
             }}
-            theme={theme}
           />
           <TouchableOpacity
             onPress={handleDelete}
@@ -304,7 +299,6 @@ export function IngredientEditSheet({
 
 export interface AddIngredientSheetProps {
   visible: boolean;
-  theme: any;
   onClose: () => void;
   onAdd: (ingredient: Ingredient) => void;
 }
@@ -317,10 +311,10 @@ const EMPTY_INGREDIENT: Ingredient = {
 
 export function AddIngredientSheet({
   visible,
-  theme,
   onClose,
   onAdd,
 }: AddIngredientSheetProps) {
+  const theme = useTheme();
   const sheetRef = useRef<TrueSheet>(null);
   const nameInputRef = useRef<TextInput>(null);
   const draft = useRef<Ingredient>({ ...EMPTY_INGREDIENT });
@@ -425,7 +419,6 @@ export function AddIngredientSheet({
             onChangeText={(v) => {
               draft.current = { ...draft.current, name: v };
             }}
-            theme={theme}
           />
           <View
             style={[
@@ -442,7 +435,6 @@ export function AddIngredientSheet({
               const n = parseInt(v, 10);
               if (!isNaN(n)) draft.current = { ...draft.current, weight_g: n };
             }}
-            theme={theme}
           />
           <View
             style={[
@@ -460,7 +452,6 @@ export function AddIngredientSheet({
               if (!isNaN(n))
                 draft.current = { ...draft.current, calories_kcal: n };
             }}
-            theme={theme}
           />
         </View>
       </View>
@@ -475,7 +466,6 @@ export function AddIngredientSheet({
 export interface WeightEditSheetProps {
   visible: boolean;
   weight: number;
-  theme: any;
   onClose: () => void;
   onSave: (weight: number) => void;
 }
@@ -483,10 +473,10 @@ export interface WeightEditSheetProps {
 export function WeightEditSheet({
   visible,
   weight,
-  theme,
   onClose,
   onSave,
 }: WeightEditSheetProps) {
+  const theme = useTheme();
   const sheetRef = useRef<TrueSheet>(null);
   const inputRef = useRef<TextInput>(null);
   const draft = useRef<number>(weight);
@@ -583,7 +573,6 @@ export function WeightEditSheet({
               const n = parseInt(v, 10);
               if (!isNaN(n)) draft.current = n;
             }}
-            theme={theme}
           />
         </View>
       </View>
@@ -598,7 +587,6 @@ export function WeightEditSheet({
 export interface MacroEditSheetProps {
   visible: boolean;
   nutrition: Pick<NutritionData, "protein_g" | "carbs_g" | "fats_g">;
-  theme: any;
   onClose: () => void;
   onSave: (
     macros: Pick<NutritionData, "protein_g" | "carbs_g" | "fats_g">,
@@ -608,10 +596,10 @@ export interface MacroEditSheetProps {
 export function MacroEditSheet({
   visible,
   nutrition,
-  theme,
   onClose,
   onSave,
 }: MacroEditSheetProps) {
+  const theme = useTheme();
   const sheetRef = useRef<TrueSheet>(null);
   const proteinRef = useRef<TextInput>(null);
 
@@ -724,7 +712,6 @@ export function MacroEditSheet({
               const n = parseFloat(v);
               if (!isNaN(n)) draft.current = { ...draft.current, protein_g: n };
             }}
-            theme={theme}
           />
           <View
             style={[
@@ -741,7 +728,6 @@ export function MacroEditSheet({
               const n = parseFloat(v);
               if (!isNaN(n)) draft.current = { ...draft.current, carbs_g: n };
             }}
-            theme={theme}
           />
           <View
             style={[
@@ -758,7 +744,6 @@ export function MacroEditSheet({
               const n = parseFloat(v);
               if (!isNaN(n)) draft.current = { ...draft.current, fats_g: n };
             }}
-            theme={theme}
           />
         </View>
       </View>
