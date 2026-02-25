@@ -82,13 +82,13 @@
 
             document.getElementById("img").src = url;
 
-            // Trigger download
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "capture.jpg";
-            a.click();
+            // Trigger download - Uncomment if you want to save the image
+            //const a = document.createElement("a");
+            //a.href = url;
+            //a.download = "capture.jpg";
+            //a.click();
+            //status("Saved capture.jpg");
 
-            status("Saved capture.jpg");
             reset();
           } else {
             status(`Receiving... ${received}/${expectedLen}`);
