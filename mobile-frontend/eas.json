@@ -10,15 +10,23 @@
       "channel": "development"
     },
     "preview": {
-      "distribution": "internal",
-      "channel": "preview"
+      "distribution": "store",
+      "channel": "preview",
+      "autoIncrement": true
     },
     "production": {
+      "distribution": "store",
       "autoIncrement": true,
       "channel": "production"
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "preview": {
+      "android": {
+        "releaseStatus": "draft",
+        "track": "internal"
+      }
+    }
   }
 }
