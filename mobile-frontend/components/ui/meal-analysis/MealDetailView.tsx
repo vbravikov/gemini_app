@@ -5,11 +5,11 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  Dimensions,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   Extrapolation,
@@ -18,9 +18,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-export const MEAL_HEADER_HEIGHT = SCREEN_HEIGHT * 0.4;
 
 export interface ActionButton {
   label: string;
@@ -92,6 +89,9 @@ export const MealDetailView = ({
   backgroundColor,
   isDark,
 }: MealDetailViewProps) => {
+  const { height: SCREEN_HEIGHT } = useWindowDimensions();
+  const MEAL_HEADER_HEIGHT = SCREEN_HEIGHT * 0.4;
+  
   const scrollY = useSharedValue(0);
 
   const scrollHandler = useAnimatedScrollHandler({
@@ -137,7 +137,7 @@ export const MealDetailView = ({
         scrollEventThrottle={16}
       >
         {/* Parallax Hero */}
-        <Animated.View style={[styles.heroContainer, heroAnimatedStyle]}>
+        <Animated.View style={[styles.heroContainer, { height: MEAL_HEADER_HEIGHT }, heroAnimatedStyle]}>
           {imageUri ? (
             <Image
               source={{ uri: imageUri }}
@@ -182,7 +182,7 @@ export const MealDetailView = ({
         </Animated.View>
 
         {/* Tabs */}
-        <View style={[styles.tabsWrapper, { backgroundColor }]}>
+        <View style={[styles.tabsWrapper, { backgroundColor, minHeight: SCREEN_HEIGHT }]}>
           <TopTabs
             tabs={tabs}
             activeColor={activeColor}
@@ -245,7 +245,6 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     width: "100%",
-    height: MEAL_HEADER_HEIGHT,
     overflow: "hidden",
   },
   heroImage: {
@@ -275,7 +274,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -24,
-    minHeight: SCREEN_HEIGHT,
   },
   bottomActionBar: {
     position: "absolute",

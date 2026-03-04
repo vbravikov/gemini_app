@@ -42,6 +42,7 @@ interface ContentItemProps {
   index: number;
   scrollX: SharedValue<number>;
   screenWidth: number;
+  screenHeight: number;
 }
 
 export type {

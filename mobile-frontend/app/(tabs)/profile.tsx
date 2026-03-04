@@ -106,9 +106,9 @@ function GoalRow({
     <View style={styles.goalRow}>
       <View style={[styles.goalDot, { backgroundColor: color }]} />
       <Text style={[styles.goalLabel, { color: theme.text }]}>{label}</Text>
-      <Text style={[styles.goalValue, { color: theme.textMuted }]}>
+      <Text style={[styles.goalValue, { color: theme.textMuted }]} selectable>
         {value}
-        {unit}
+        <Text selectable={false}>{unit}</Text>
       </Text>
     </View>
   );

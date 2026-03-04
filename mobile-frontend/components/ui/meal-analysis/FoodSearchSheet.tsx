@@ -15,8 +15,8 @@
  */
 
 import { useTheme } from "@/constants/theme";
-import { OFFFoodItem, getFoodEmoji } from "@/utils/openFoodFacts";
 import { useFoodSearch } from "@/hooks/useFoodSearch";
+import { OFFFoodItem, getFoodEmoji } from "@/utils/openFoodFacts";
 import { MaterialIcons } from "@expo/vector-icons";
 import { TrueSheet } from "@lodev09/react-native-true-sheet";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -31,7 +31,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   Keyboard,
   Platform,
   ScrollView,
@@ -40,6 +39,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions
 } from "react-native";
 
 // ---------------------------------------------------------------------------
@@ -183,11 +183,11 @@ const rowStyles = StyleSheet.create({
 // Main sheet
 // ---------------------------------------------------------------------------
 
-const SCREEN_HEIGHT = Dimensions.get("window").height;
-// Reserve space for: handle (~20) + header (~60) + search bar (~52) + portion row (~52) + bottom safe area (~40)
-const SCROLL_MAX_HEIGHT = SCREEN_HEIGHT * 0.55;
-
 export const FoodSearchSheet = forwardRef<FoodSearchSheetHandle>((_, ref) => {
+  const { height: SCREEN_HEIGHT } = useWindowDimensions();
+  // Reserve space for: handle (~20) + header (~60) + search bar (~52) + portion row (~52) + bottom safe area (~40)
+  const SCROLL_MAX_HEIGHT = SCREEN_HEIGHT * 0.55;
+
   const theme = useTheme();
   const router = useRouter();
   const sheetRef = useRef<TrueSheet>(null);
@@ -482,7 +482,7 @@ export const FoodSearchSheet = forwardRef<FoodSearchSheetHandle>((_, ref) => {
                   },
                 ].map(({ label, value, color }) => (
                   <View key={label} style={styles.macroChip}>
-                    <Text style={[styles.macroValue, { color }]}>{value}</Text>
+                    <Text style={[styles.macroValue, { color }]} selectable>{value}</Text>
                     <Text
                       style={[styles.macroLabel, { color: theme.textMuted }]}
                     >

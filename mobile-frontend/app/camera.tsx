@@ -14,20 +14,19 @@ import { useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Dimensions,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 export default function CameraScreen() {
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const [facing, setFacing] = useState<CameraType>("back");
   const [flash, setFlash] = useState<FlashMode>("off");
   const [permission, requestPermission] = useCameraPermissions();
@@ -139,7 +138,12 @@ export default function CameraScreen() {
 
       {/* Framing Guide */}
       <View style={styles.guideContainer} pointerEvents="none">
-        <View style={styles.guideBox}>
+        <View
+          style={[
+            styles.guideBox,
+            { width: SCREEN_WIDTH * 0.75, height: SCREEN_WIDTH * 0.75 },
+          ]}
+        >
           <View style={[styles.guideCorner, styles.topLeft]} />
           <View style={[styles.guideCorner, styles.topRight]} />
           <View style={[styles.guideCorner, styles.bottomLeft]} />
@@ -250,14 +254,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   guideContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 5,
   },
   guideBox: {
-    width: SCREEN_WIDTH * 0.75,
-    height: SCREEN_WIDTH * 0.75,
     position: "relative",
   },
   guideCorner: {

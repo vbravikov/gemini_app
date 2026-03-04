@@ -1,7 +1,6 @@
 import { BlurView } from "expo-blur";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   Platform,
   StyleSheet,
@@ -31,11 +30,7 @@ import type {
   TopTabsProps,
 } from "./types";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-const AnimatedFlatList = Animated.createAnimatedComponent(
-  FlatList as new () => FlatList<Tab>,
-);
 
 const TAB_PADDING: number = 20;
 const MIN_UNDERLINE_WIDTH: number = 0.5;
@@ -45,6 +40,7 @@ const ContentItem: React.FC<ContentItemProps> = ({
   index,
   scrollX,
   screenWidth,
+  screenHeight,
 }) => {
   const animatedBlurViewProps = useAnimatedProps(() => {
     "worklet";
@@ -86,7 +82,7 @@ const ContentItem: React.FC<ContentItemProps> = ({
     <Animated.View
       style={[
         styles.contentWrapper,
-        { width: screenWidth },
+        { width: screenWidth, minHeight: screenHeight },
         animatedViewStylez,
       ]}
     >
@@ -175,7 +171,8 @@ export const TopTabs: React.FC<TopTabsProps> = ({
   underlineColor = "#007AFF",
   underlineHeight = 3,
 }) => {
-  const { width: screenWidth }: ScaledSize = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight }: ScaledSize =
+    useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [isLayoutReady, setIsLayoutReady] = useState<boolean>(false);
   const tabWidths = useRef<number[]>(tabs.map(() => 0));
@@ -349,6 +346,7 @@ export const TopTabs: React.FC<TopTabsProps> = ({
         index={index}
         scrollX={scrollX}
         screenWidth={screenWidth}
+        screenHeight={screenHeight}
       />
     );
   };
@@ -368,7 +366,7 @@ export const TopTabs: React.FC<TopTabsProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.tabBarContainer}>
-        <AnimatedFlatList
+        <Animated.FlatList
           ref={tabBarFlatListRef}
           data={tabs}
           renderItem={renderTabItem}
@@ -388,7 +386,7 @@ export const TopTabs: React.FC<TopTabsProps> = ({
         />
       </View>
 
-      <AnimatedFlatList
+      <Animated.FlatList
         ref={contentFlatListRef}
         data={tabs}
         renderItem={renderContentItem}
@@ -429,7 +427,6 @@ const styles = StyleSheet.create({
   },
   contentFlatList: {},
   contentWrapper: {
-    minHeight: SCREEN_HEIGHT,
     position: "relative",
   },
   contentScrollContainer: {

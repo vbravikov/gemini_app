@@ -2,14 +2,16 @@ import { CollapsibleHeader } from "@/components/ui/base/CollapsibleHeader";
 import { useTheme } from "@/constants/theme";
 import { MealLog, useMealLogs } from "@/hooks/useMealLogs";
 import { useCustomDailyGoals } from "@/hooks/useDailyGoals";
-import { FoodSearchSheet, FoodSearchSheetHandle } from "@/components/ui/meal-analysis/FoodSearchSheet";
+import {
+  FoodSearchSheet,
+  FoodSearchSheetHandle,
+} from "@/components/ui/meal-analysis/FoodSearchSheet";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
-  Dimensions,
   FlatList,
   ScrollView,
   StatusBar,
@@ -17,6 +19,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import Animated, {
   FadeIn,
@@ -30,8 +33,6 @@ const HEADER_EXPANDED_HEIGHT = 210;
 const HEADER_COLLAPSED_HEIGHT = 150;
 const GAP = 10;
 const H_PAD = 20;
-const SCREEN_W = Dimensions.get("window").width;
-const CELL_SIZE = (SCREEN_W - H_PAD * 2 - GAP) / 2;
 
 // ---------------------------------------------------------------------------
 // Photo grid cell
@@ -41,13 +42,18 @@ const GridCell = ({
   theme,
   router,
   index,
+  cellSize,
 }: {
   log: MealLog;
   theme: ReturnType<typeof useTheme>;
   router: ReturnType<typeof useRouter>;
   index: number;
+  cellSize: number;
 }) => (
-  <Animated.View entering={FadeIn.delay(index * 60)} style={cellStyles.wrap}>
+  <Animated.View
+    entering={FadeIn.delay(index * 60)}
+    style={[cellStyles.wrap, { width: cellSize, height: cellSize * 1.2 }]}
+  >
     <Link href={{ pathname: "/log-details", params: { id: log.id } }} asChild>
       <Link.Trigger withAppleZoom>
         <TouchableOpacity activeOpacity={0.88} style={cellStyles.touch}>
@@ -110,8 +116,6 @@ const GridCell = ({
 
 const cellStyles = StyleSheet.create({
   wrap: {
-    width: CELL_SIZE,
-    height: CELL_SIZE * 1.2,
     borderRadius: 22,
     overflow: "hidden",
   },
@@ -176,6 +180,9 @@ const cellStyles = StyleSheet.create({
 export default function LogsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const { width: SCREEN_W } = useWindowDimensions();
+  const CELL_SIZE = (SCREEN_W - H_PAD * 2 - GAP) / 2;
+
   const { getLogsForDate, getDailyTotals } = useMealLogs();
   const { goals } = useCustomDailyGoals();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -192,10 +199,7 @@ export default function LogsScreen() {
     [selectedDate, getDailyTotals],
   );
 
-  const calorieProgress = Math.min(
-    totals.calories / goals.calories_kcal,
-    1,
-  );
+  const calorieProgress = Math.min(totals.calories / goals.calories_kcal, 1);
 
   const dateStrip = useMemo(() => {
     return Array.from({ length: 14 })
@@ -232,13 +236,14 @@ export default function LogsScreen() {
             theme={theme}
             router={router}
             index={rowIdx * 2 + colIdx}
+            cellSize={CELL_SIZE}
           />
         ))}
         {/* Spacer when odd number of items */}
         {row.length === 1 && <View style={{ width: CELL_SIZE }} />}
       </View>
     ),
-    [theme, router],
+    [theme, router, CELL_SIZE],
   );
 
   const listHeader = useMemo(
@@ -355,7 +360,13 @@ export default function LogsScreen() {
         </View>
       </View>
     ),
-    [theme, totals, goals, calorieProgress, selectedDate, dayLogs.length, router],
+    [
+      theme,
+      totals,
+      calorieProgress,
+      selectedDate,
+      dayLogs.length,
+    ],
   );
 
   const listEmpty = useMemo(
@@ -487,9 +498,11 @@ const StatChip = ({
   theme: ReturnType<typeof useTheme>;
 }) => (
   <View style={chipStyles.chip}>
-    <Text style={[chipStyles.value, { color: theme.text }]}>
+    <Text style={[chipStyles.value, { color: theme.text }]} selectable>
       {value}
-      <Text style={[chipStyles.unit, { color: color }]}>{unit}</Text>
+      <Text style={[chipStyles.unit, { color: color }]} selectable={false}>
+        {unit}
+      </Text>
     </Text>
     <Text style={[chipStyles.label, { color: theme.textMuted }]}>{label}</Text>
   </View>
