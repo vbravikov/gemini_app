@@ -200,7 +200,7 @@ export const MealDetailView = ({
           styles.bottomActionBar,
           { borderTopColor: actionBarBorderColor },
         ]}
-        experimentalBlurMethod="dimezisBlurView"
+        blurMethod="dimezisBlurView"
       >
         <View style={styles.bottomActionContent}>
           {actions.map((action, index) => (

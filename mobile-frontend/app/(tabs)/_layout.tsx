@@ -1,12 +1,6 @@
-import {
-  NativeTabs,
-  VectorIcon,
-  Label,
-  Icon,
-} from "expo-router/unstable-native-tabs";
-import React from "react";
-import { MaterialIcons } from "@expo/vector-icons";
 import { useTheme } from "@/constants/theme";
+import { NativeTabs } from "expo-router/unstable-native-tabs";
+import React from "react";
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -21,20 +15,21 @@ export default function TabLayout() {
       }}
       indicatorColor={theme.background}
       tintColor={theme.primaryDark}
+      rippleColor={"transparent"}
     >
       <NativeTabs.Trigger name="index">
-        <Icon src={<VectorIcon family={MaterialIcons} name="home" />} />
-        <Label>Home</Label>
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon md="home" sf={"house"} />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="logs">
-        <Icon src={<VectorIcon family={MaterialIcons} name="history" />} />
-        <Label>Logs</Label>
+        <NativeTabs.Trigger.Icon md="list" sf={"list.bullet"} />
+        <NativeTabs.Trigger.Label>Logs</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
-        <Icon src={<VectorIcon family={MaterialIcons} name="person" />} />
-        <Label>Profile</Label>
+        <NativeTabs.Trigger.Icon md="person" sf={"person"} />
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

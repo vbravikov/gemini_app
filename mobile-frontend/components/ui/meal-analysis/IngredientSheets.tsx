@@ -111,6 +111,7 @@ export function IngredientEditSheet({
   const theme = useTheme();
   const sheetRef = useRef<TrueSheet>(null);
   const nameInputRef = useRef<TextInput>(null);
+  const isPresenting = useRef(false);
 
   const draft = useRef<Ingredient>(
     ingredient ?? { name: "", weight_g: 0, calories_kcal: 0 },
@@ -124,9 +125,17 @@ export function IngredientEditSheet({
   // Drive present / dismiss from the visible prop
   useEffect(() => {
     if (visible) {
+      if (isPresenting.current) return;
+      isPresenting.current = true;
       sheetRef.current?.present();
     } else {
-      sheetRef.current?.dismiss();
+      if (!isPresenting.current) return;
+      isPresenting.current = false;
+      try {
+        sheetRef.current?.dismiss();
+      } catch (e) {
+        // Ignore "No sheet found" errors during unmount/rapid toggles
+      }
     }
   }, [visible]);
 
@@ -173,9 +182,13 @@ export function IngredientEditSheet({
     <TrueSheet
       ref={sheetRef}
       detents={["auto"]}
-      onDidDismiss={onClose}
+      onDidDismiss={() => {
+        isPresenting.current = false;
+        onClose();
+      }}
       backgroundBlur={theme.isDark ? "dark" : "light"}
       onDidPresent={() => {
+        isPresenting.current = true;
         // Focus name field after sheet finishes presenting (avoid autoFocus)
         nameInputRef.current?.focus();
       }}
@@ -318,14 +331,23 @@ export function AddIngredientSheet({
   const sheetRef = useRef<TrueSheet>(null);
   const nameInputRef = useRef<TextInput>(null);
   const draft = useRef<Ingredient>({ ...EMPTY_INGREDIENT });
+  const isPresenting = useRef(false);
 
   // Drive present / dismiss from the visible prop
   useEffect(() => {
     if (visible) {
+      if (isPresenting.current) return;
+      isPresenting.current = true;
       draft.current = { ...EMPTY_INGREDIENT };
       sheetRef.current?.present();
     } else {
-      sheetRef.current?.dismiss();
+      if (!isPresenting.current) return;
+      isPresenting.current = false;
+      try {
+        sheetRef.current?.dismiss();
+      } catch (e) {
+        // Ignore "No sheet found" errors
+      }
     }
   }, [visible]);
 
@@ -351,9 +373,13 @@ export function AddIngredientSheet({
     <TrueSheet
       ref={sheetRef}
       detents={["auto"]}
-      onDidDismiss={onClose}
+      onDidDismiss={() => {
+        isPresenting.current = false;
+        onClose();
+      }}
       backgroundBlur={theme.isDark ? "dark" : "light"}
       onDidPresent={() => {
+        isPresenting.current = true;
         // Focus name field after sheet finishes presenting (avoid autoFocus)
         nameInputRef.current?.focus();
       }}
@@ -480,6 +506,7 @@ export function WeightEditSheet({
   const sheetRef = useRef<TrueSheet>(null);
   const inputRef = useRef<TextInput>(null);
   const draft = useRef<number>(weight);
+  const isPresenting = useRef(false);
 
   // Keep draft in sync when weight prop changes
   if (weight !== draft.current) {
@@ -488,9 +515,17 @@ export function WeightEditSheet({
 
   useEffect(() => {
     if (visible) {
+      if (isPresenting.current) return;
+      isPresenting.current = true;
       sheetRef.current?.present();
     } else {
-      sheetRef.current?.dismiss();
+      if (!isPresenting.current) return;
+      isPresenting.current = false;
+      try {
+        sheetRef.current?.dismiss();
+      } catch (e) {
+        // Ignore "No sheet found" errors
+      }
     }
   }, [visible]);
 
@@ -509,8 +544,12 @@ export function WeightEditSheet({
       ref={sheetRef}
       detents={["auto"]}
       cornerRadius={28}
-      onDidDismiss={onClose}
+      onDidDismiss={() => {
+        isPresenting.current = false;
+        onClose();
+      }}
       onDidPresent={() => {
+        isPresenting.current = true;
         inputRef.current?.focus();
       }}
       footer={
@@ -602,6 +641,7 @@ export function MacroEditSheet({
   const theme = useTheme();
   const sheetRef = useRef<TrueSheet>(null);
   const proteinRef = useRef<TextInput>(null);
+  const isPresenting = useRef(false);
 
   type MacroDraft = Pick<NutritionData, "protein_g" | "carbs_g" | "fats_g">;
   const draft = useRef<MacroDraft>({ ...nutrition });
@@ -617,9 +657,17 @@ export function MacroEditSheet({
 
   useEffect(() => {
     if (visible) {
+      if (isPresenting.current) return;
+      isPresenting.current = true;
       sheetRef.current?.present();
     } else {
-      sheetRef.current?.dismiss();
+      if (!isPresenting.current) return;
+      isPresenting.current = false;
+      try {
+        sheetRef.current?.dismiss();
+      } catch (e) {
+        // Ignore "No sheet found" errors
+      }
     }
   }, [visible]);
 
@@ -645,8 +693,12 @@ export function MacroEditSheet({
     <TrueSheet
       ref={sheetRef}
       detents={["auto"]}
-      onDidDismiss={onClose}
+      onDidDismiss={() => {
+        isPresenting.current = false;
+        onClose();
+      }}
       onDidPresent={() => {
+        isPresenting.current = true;
         proteinRef.current?.focus();
       }}
       footer={

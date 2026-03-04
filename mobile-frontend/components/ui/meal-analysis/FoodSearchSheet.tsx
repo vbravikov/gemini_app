@@ -193,43 +193,68 @@ export const FoodSearchSheet = forwardRef<FoodSearchSheetHandle>((_, ref) => {
   const sheetRef = useRef<TrueSheet>(null);
   const searchInputRef = useRef<TextInput>(null);
   const [permission, requestPermission] = useCameraPermissions();
+  const isSheetPresented = useRef(false);
 
   const {
     query,
     setQuery,
     searchResults,
     searching,
+    scanning,
     portionG,
     setPortionG,
     selected,
     selectItem,
     clearSelection,
+    cancelAll,
     scanBarcode,
     finalNutrition,
   } = useFoodSearch();
 
   // Expose present/dismiss imperatively
   useImperativeHandle(ref, () => ({
-    present: () => sheetRef.current?.present(),
-    dismiss: () => sheetRef.current?.dismiss(),
+    present: () => {
+      isSheetPresented.current = true;
+      sheetRef.current?.present();
+    },
+    dismiss: () => {
+      isSheetPresented.current = false;
+      sheetRef.current?.dismiss();
+    },
   }));
 
   // Set up the native barcode scanner listener once on mount
   useEffect(() => {
     const sub = CameraView.onModernBarcodeScanned(async (result) => {
+      console.log("Barcode scanned:", result);
       CameraView.dismissScanner();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Clear search results so the selected preview has room / isn't hidden by list
+      setQuery("");
+
       const item = await scanBarcode(result.data);
-      if (!item) {
+
+      if (item) {
+        // Ensure sheet is present after scanner dismissal
+        // OS transition sometimes hides the sheet.
+        setTimeout(() => {
+          if (!isSheetPresented.current) {
+            isSheetPresented.current = true;
+            sheetRef.current?.present();
+          }
+        }, 300);
+      } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     });
     return () => sub.remove();
-  }, [scanBarcode]);
+  }, [scanBarcode, setQuery]);
 
   const handleDismiss = useCallback(() => {
-    clearSelection();
-  }, [clearSelection]);
+    isSheetPresented.current = false;
+    cancelAll();
+  }, [cancelAll]);
 
   const handleBarcodeTap = useCallback(async () => {
     Keyboard.dismiss();
@@ -253,7 +278,11 @@ export const FoodSearchSheet = forwardRef<FoodSearchSheetHandle>((_, ref) => {
 
   const handleViewDetails = useCallback(() => {
     if (!finalNutrition) return;
-    sheetRef.current?.dismiss();
+    try {
+      sheetRef.current?.dismiss();
+    } catch (e) {
+      console.warn("Failed to dismiss sheet:", e);
+    }
     router.push({
       pathname: "/meal-info",
       params: {
@@ -269,7 +298,11 @@ export const FoodSearchSheet = forwardRef<FoodSearchSheetHandle>((_, ref) => {
       ref={sheetRef}
       detents={["auto"]}
       onDidDismiss={handleDismiss}
+      onDidPresent={() => {
+        isSheetPresented.current = true;
+      }}
       backgroundBlur={theme.isDark ? "dark" : "light"}
+      backgroundColor={theme.background}
     >
       {/* TrueSheet with detents=["large"] needs a plain View child — no flex:1 */}
       <View
@@ -373,8 +406,18 @@ export const FoodSearchSheet = forwardRef<FoodSearchSheetHandle>((_, ref) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
+          {/* ---- Barcode / Initial fetch scanning indicator ---- */}
+          {scanning && (
+            <View style={styles.scanningIndicator}>
+              <ActivityIndicator color={theme.tint} />
+              <Text style={[styles.statusText, { color: theme.textMuted }]}>
+                Identifying product...
+              </Text>
+            </View>
+          )}
+
           {/* ---- Selected item preview ---- */}
-          {selected && (
+          {selected && !scanning && (
             <View
               style={[
                 styles.selectedPreview,
@@ -520,7 +563,7 @@ export const FoodSearchSheet = forwardRef<FoodSearchSheetHandle>((_, ref) => {
           )}
 
           {/* ---- Search results ---- */}
-          {!selected && (
+          {!selected && !scanning && (
             <>
               {searching && (
                 <View style={styles.centeredRow}>
@@ -732,6 +775,11 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   centeredRow: {
+    alignItems: "center",
+    paddingVertical: 48,
+    gap: 12,
+  },
+  scanningIndicator: {
     alignItems: "center",
     paddingVertical: 48,
     gap: 12,

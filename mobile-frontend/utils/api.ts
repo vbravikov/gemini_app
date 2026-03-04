@@ -1,6 +1,7 @@
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { ICON_KEYS } from "@/constants/ingredientIcons";
+import * as Device from "expo-device";
 
 /**
  * Dynamically determines the backend URL.
@@ -111,7 +112,11 @@ const buildPrompt = (context?: PromptContext): string => {
   );
 };
 
-const buildTextPrompt = (foodName: string, portionG: number, context?: PromptContext): string => {
+const buildTextPrompt = (
+  foodName: string,
+  portionG: number,
+  context?: PromptContext,
+): string => {
   const iconList = ICON_KEYS.join(", ");
 
   let contextSection = "";
@@ -153,7 +158,6 @@ const buildTextPrompt = (foodName: string, portionG: number, context?: PromptCon
     "Return valid JSON only."
   );
 };
-
 
 export const MOCK_ANALYSIS_DATA: AnalysisResponse = {
   filename: "mock_image.jpg",
@@ -218,7 +222,7 @@ export const analyzeTextFood = async (
   portionG: number = 100,
   signal?: AbortSignal,
   context?: PromptContext,
-  useMock: boolean = __DEV__,
+  useMock: boolean = __DEV__ && !Device.isDevice, // Use real API on physical devices even in dev for better testing
 ): Promise<AnalysisResponse> => {
   if (useMock) {
     console.log(`[API] Using MOCK response for text query: ${foodName}`);
@@ -227,7 +231,11 @@ export const analyzeTextFood = async (
     return {
       ...MOCK_ANALYSIS_DATA,
       nutrition_data: MOCK_ANALYSIS_DATA.nutrition_data
-        ? { ...MOCK_ANALYSIS_DATA.nutrition_data, dish_name: foodName, portion_size_g: portionG }
+        ? {
+            ...MOCK_ANALYSIS_DATA.nutrition_data,
+            dish_name: foodName,
+            portion_size_g: portionG,
+          }
         : null,
     };
   }
@@ -251,7 +259,9 @@ export const analyzeTextFood = async (
     });
 
     if (!response.ok) {
-      console.error(`[API] /analyze-text responded with status ${response.status}`);
+      console.error(
+        `[API] /analyze-text responded with status ${response.status}`,
+      );
       throw new Error(`Server responded with ${response.status}`);
     }
 
@@ -259,7 +269,9 @@ export const analyzeTextFood = async (
     console.log(`[API] Text analysis successful for: ${foodName}`);
     return data;
   } catch (error) {
-    console.error(`[API] Network request failed for ${BACKEND_URL}/analyze-text`);
+    console.error(
+      `[API] Network request failed for ${BACKEND_URL}/analyze-text`,
+    );
     throw error;
   }
 };
@@ -273,7 +285,7 @@ export const analyzeTextFood = async (
 export const analyzeImage = async (
   imageUri: string,
   signal?: AbortSignal,
-  useMock: boolean = __DEV__,
+  useMock: boolean = __DEV__ && !Device.isDevice, // Use real API on physical devices even in dev for better testing
   context?: PromptContext,
 ): Promise<AnalysisResponse> => {
   if (useMock) {

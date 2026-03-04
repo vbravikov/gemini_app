@@ -9,7 +9,13 @@ import { useCustomDailyGoals, DIET_GOAL_PRESETS } from "@/hooks/useDailyGoals";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Link } from "expo-router";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
 // ---------------------------------------------------------------------------
@@ -76,7 +82,9 @@ function StatCard({
     >
       <MaterialIcons name={icon} size={22} color={theme.tint} />
       <Text style={[styles.statValue, { color: theme.text }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: theme.textMuted }]}>{label}</Text>
+      <Text style={[styles.statLabel, { color: theme.textMuted }]}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -119,9 +127,16 @@ function InfoRow({
 }) {
   return (
     <View style={styles.infoRow}>
-      <MaterialIcons name={icon} size={18} color={theme.tint} style={{ width: 24 }} />
+      <MaterialIcons
+        name={icon}
+        size={18}
+        color={theme.tint}
+        style={{ width: 24 }}
+      />
       <Text style={[styles.infoLabel, { color: theme.text }]}>{label}</Text>
-      <Text style={[styles.infoValue, { color: theme.textMuted }]}>{value}</Text>
+      <Text style={[styles.infoValue, { color: theme.textMuted }]}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -180,13 +195,12 @@ function GoalTile({
   );
 }
 
-
-
 export default function ProfileScreen() {
   const theme = useTheme();
   const { logs } = useMealLogs();
   const { dietGoal, goalConfig, setDietGoal } = useDietPreferences();
-  const { goals, isCustom, applyPreset, resetToDefault } = useCustomDailyGoals();
+  const { goals, isCustom, applyPreset, resetToDefault } =
+    useCustomDailyGoals();
 
   const totalCalories = logs.reduce((s, l) => s + l.nutrition.calories_kcal, 0);
   const streak = calcStreak(logs);
@@ -215,7 +229,10 @@ export default function ProfileScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* ---- Avatar / Header ---- */}
-      <Animated.View entering={FadeInDown.delay(0)} style={styles.avatarSection}>
+      <Animated.View
+        entering={FadeInDown.delay(0)}
+        style={styles.avatarSection}
+      >
         <BlurView
           intensity={40}
           tint={theme.isDark ? "dark" : "light"}
@@ -223,11 +240,13 @@ export default function ProfileScreen() {
             styles.avatarCircle,
             { borderColor: theme.isDark ? "#1f3d29" : "#d1fae5" },
           ]}
-          experimentalBlurMethod="dimezisBlurView"
+          blurMethod="dimezisBlurView"
         >
           <Text style={[styles.avatarText, { color: theme.tint }]}>DG</Text>
         </BlurView>
-        <Text style={[styles.userName, { color: theme.text }]}>Diet Glasses</Text>
+        <Text style={[styles.userName, { color: theme.text }]}>
+          Diet Glasses
+        </Text>
         <Text style={[styles.userSubtitle, { color: theme.textMuted }]}>
           {logs.length === 0
             ? "No meals logged yet"
@@ -237,14 +256,24 @@ export default function ProfileScreen() {
 
       {/* ---- Stats row ---- */}
       <Animated.View entering={FadeInDown.delay(100)} style={styles.statsRow}>
-        <StatCard icon="restaurant" label="Meals" value={logs.length} theme={theme} />
+        <StatCard
+          icon="restaurant"
+          label="Meals"
+          value={logs.length}
+          theme={theme}
+        />
         <StatCard
           icon="local-fire-department"
           label="kcal total"
           value={totalCalories.toLocaleString()}
           theme={theme}
         />
-        <StatCard icon="emoji-events" label="Day streak" value={streak} theme={theme} />
+        <StatCard
+          icon="emoji-events"
+          label="Day streak"
+          value={streak}
+          theme={theme}
+        />
       </Animated.View>
 
       {/* ---- Diet Goal ---- */}
@@ -305,7 +334,11 @@ export default function ProfileScreen() {
               { backgroundColor: theme.isDark ? "#0f2d1f" : "#f0fdf4" },
             ]}
           >
-            <MaterialIcons name={isCustom ? "tune" : "auto-awesome"} size={12} color={theme.tint} />
+            <MaterialIcons
+              name={isCustom ? "tune" : "auto-awesome"}
+              size={12}
+              color={theme.tint}
+            />
             <Text style={[styles.customBadgeText, { color: theme.tint }]}>
               {isCustom
                 ? "Custom goals active"
@@ -339,38 +372,6 @@ export default function ProfileScreen() {
           value={goals.fats_g}
           unit="g"
           color="#eab308"
-          theme={theme}
-        />
-      </Animated.View>
-
-      {/* ---- App Info ---- */}
-      <Animated.View
-        entering={FadeInDown.delay(300)}
-        style={[
-          styles.card,
-          {
-            backgroundColor: theme.card,
-            borderColor: theme.isDark ? "#1f3d29" : "#e5e7eb",
-          },
-        ]}
-      >
-        <SectionHeader title="APP INFO" theme={theme} />
-        <InfoRow
-          icon="palette"
-          label="Appearance"
-          value={theme.isDark ? "Dark" : "Light"}
-          theme={theme}
-        />
-        <InfoRow
-          icon="science"
-          label="Analysis mode"
-          value={__DEV__ ? "Mock (dev)" : "Live API"}
-          theme={theme}
-        />
-        <InfoRow
-          icon="memory"
-          label="Architecture"
-          value="New Architecture"
           theme={theme}
         />
       </Animated.View>
@@ -500,20 +501,6 @@ const styles = StyleSheet.create({
   goalValue: {
     fontSize: 15,
     fontFamily: "semibold",
-  },
-  goalNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 12,
-  },
-  goalNoteText: {
-    flex: 1,
-    fontSize: 12,
-    fontFamily: "medium",
-    lineHeight: 18,
   },
   goalTileGrid: {
     flexDirection: "row",

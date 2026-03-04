@@ -63,7 +63,7 @@ async def analyze(image: UploadFile = File(...), prompt: str = Form("")):
         img_part = types.Part.from_bytes(data=img_bytes, mime_type=mime)
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3-flash",
             contents=[final_prompt, img_part],
         )
 
@@ -138,7 +138,7 @@ async def analyze_text(body: AnalyzeTextRequest):
         )
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3-flash",
             contents=[prompt],
         )
 

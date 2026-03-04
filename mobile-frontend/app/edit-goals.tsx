@@ -1,27 +1,24 @@
+import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
 import { useTheme } from "@/constants/theme";
 import {
-  DIET_GOAL_PRESETS,
   DailyGoals,
+  DIET_GOAL_PRESETS,
   useCustomDailyGoals,
 } from "@/hooks/useDailyGoals";
-import {
-  DIET_GOAL_OPTIONS,
-  useDietPreferences,
-} from "@/hooks/useDietPreferences";
-import { DEFAULT_DAILY_GOALS } from "@/constants/nutrition";
+import { useDietPreferences } from "@/hooks/useDietPreferences";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, Stack } from "expo-router";
 import { useRef } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  Platform,
 } from "react-native";
 import Animated, {
   FadeInDown,
@@ -138,7 +135,8 @@ function GoalField({
 
 export default function EditGoalsScreen() {
   const theme = useTheme();
-  const { goals, setGoals, resetToDefault, applyPreset, isCustom } = useCustomDailyGoals();
+  const { goals, setGoals, resetToDefault, applyPreset, isCustom } =
+    useCustomDailyGoals();
   const { dietGoal, goalConfig } = useDietPreferences();
 
   // Use refs so text inputs don't cause re-renders on every keystroke
@@ -179,10 +177,13 @@ export default function EditGoalsScreen() {
   };
 
   const handleReset = () => {
-    const resetTarget = dietGoal ? DIET_GOAL_PRESETS[dietGoal] : DEFAULT_DAILY_GOALS;
-    const resetLabel = dietGoal && goalConfig
-      ? `${goalConfig.label} preset values`
-      : "default values";
+    const resetTarget = dietGoal
+      ? DIET_GOAL_PRESETS[dietGoal]
+      : DEFAULT_DAILY_GOALS;
+    const resetLabel =
+      dietGoal && goalConfig
+        ? `${goalConfig.label} preset values`
+        : "default values";
     Alert.alert(
       "Reset Goals",
       `Reset all goals to the ${resetLabel}?\n\n${resetTarget.calories_kcal} kcal · ${resetTarget.protein_g}g protein · ${resetTarget.carbs_g}g carbs · ${resetTarget.fats_g}g fats`,
@@ -244,9 +245,7 @@ export default function EditGoalsScreen() {
                     color={theme.tint}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text
-                      style={[styles.presetTitle, { color: theme.tint }]}
-                    >
+                    <Text style={[styles.presetTitle, { color: theme.tint }]}>
                       Use {goalConfig.label} preset
                     </Text>
                     <Text
@@ -451,7 +450,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "semibold",
     textAlign: "right",
-    flex: 1,
+    flexShrink: 1,
     minWidth: 52,
   },
   unitText: {

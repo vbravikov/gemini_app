@@ -29,6 +29,8 @@ export interface UseFoodSearchReturn {
   searchResults: OFFFoodItem[];
   /** True while OFF search is loading */
   searching: boolean;
+  /** True while barcode lookup is in flight */
+  scanning: boolean;
   /** Portion size in grams (user-editable) */
   portionG: number;
   setPortionG: (g: number) => void;
@@ -36,8 +38,10 @@ export interface UseFoodSearchReturn {
   selected: FoodSearchResult | null;
   /** Select an item from search results and kick off Gemini enrichment */
   selectItem: (item: OFFFoodItem) => void;
-  /** Clear selection */
+  /** Clear selection only */
   clearSelection: () => void;
+  /** Cancel everything: search, scan, enrichment, and reset state */
+  cancelAll: () => void;
   /** Scan a barcode — returns the matched item or null */
   scanBarcode: (barcode: string) => Promise<OFFFoodItem | null>;
   /** The final NutritionData to log: enriched if ready, else OFF data */
@@ -54,6 +58,7 @@ export function useFoodSearch(): UseFoodSearchReturn {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<OFFFoodItem[]>([]);
   const [searching, setSearching] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [portionG, setPortionG] = useState(100);
   const [selected, setSelected] = useState<FoodSearchResult | null>(null);
 
@@ -164,9 +169,22 @@ export function useFoodSearch(): UseFoodSearchReturn {
     setSelected(null);
   }, []);
 
+  const cancelAll = useCallback(() => {
+    searchAbortRef.current?.abort();
+    enrichAbortRef.current?.abort();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    setQuery("");
+    setSearchResults([]);
+    setSearching(false);
+    setScanning(false);
+    setSelected(null);
+  }, []);
+
   // ---- Barcode ----
   const scanBarcode = useCallback(
     async (barcode: string): Promise<OFFFoodItem | null> => {
+      setScanning(true);
       try {
         const item = await getFoodByBarcode(barcode, portionG);
         if (item) selectItem(item);
@@ -174,6 +192,8 @@ export function useFoodSearch(): UseFoodSearchReturn {
       } catch (err) {
         console.error("[FoodSearch] Barcode lookup failed:", err);
         return null;
+      } finally {
+        setScanning(false);
       }
     },
     [portionG, selectItem],
@@ -189,11 +209,13 @@ export function useFoodSearch(): UseFoodSearchReturn {
     setQuery,
     searchResults,
     searching,
+    scanning,
     portionG,
     setPortionG,
     selected,
     selectItem,
     clearSelection,
+    cancelAll,
     scanBarcode,
     finalNutrition,
   };

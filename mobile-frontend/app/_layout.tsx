@@ -6,7 +6,7 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export const unstable_settings = {
@@ -56,6 +56,7 @@ export default function RootLayout() {
                   ? DarkTheme.colors.background
                   : DefaultTheme.colors.background,
               },
+              headerShadowVisible: false,
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -85,7 +86,7 @@ export default function RootLayout() {
               name="camera"
               options={{
                 headerShown: false,
-                presentation: "fullScreenModal",
+                presentation: "modal",
                 animation: "slide_from_bottom",
               }}
             />
@@ -95,7 +96,7 @@ export default function RootLayout() {
                 title: "Edit Daily Goals",
                 presentation: "modal",
                 animation: "slide_from_bottom",
-                headerTintColor: colors.isDark ? "#fff" : "rgba(0,0,0,0.8)",
+                headerTransparent: Platform.select({ ios: true, default: false }),
               }}
             />
           </Stack>

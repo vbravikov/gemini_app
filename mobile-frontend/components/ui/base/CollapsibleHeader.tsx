@@ -142,7 +142,7 @@ export const CollapsibleHeader: React.FC<CollapsibleHeaderProps> = ({
         intensity={50}
         tint={tint}
         style={StyleSheet.absoluteFill}
-        experimentalBlurMethod="dimezisBlurView"
+        blurMethod="dimezisBlurView"
       />
 
       {/* Collapsed title — fades in as the large title disappears */}

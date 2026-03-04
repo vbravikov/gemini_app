@@ -1,5 +1,6 @@
 import { useTheme } from "@/constants/theme";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import { BlurView } from "expo-blur";
 import {
   CameraType,
@@ -19,7 +20,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -28,6 +32,7 @@ export default function CameraScreen() {
   const [flash, setFlash] = useState<FlashMode>("off");
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
+  const isFocused = useIsFocused();
   const router = useRouter();
   const cameraRef = useRef<CameraView | null>(null);
   const theme = useTheme();
@@ -123,71 +128,70 @@ export default function CameraScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView
-        ref={cameraRef}
-        style={styles.camera}
-        facing={facing}
-        enableTorch={flash === "on"}
-      >
-        {/* Framing Guide */}
-        <View style={styles.guideContainer}>
-          <View style={styles.guideBox}>
-            <View style={[styles.guideCorner, styles.topLeft]} />
-            <View style={[styles.guideCorner, styles.topRight]} />
-            <View style={[styles.guideCorner, styles.bottomLeft]} />
-            <View style={[styles.guideCorner, styles.bottomRight]} />
+      {isFocused && (
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+          enableTorch={flash === "on"}
+        />
+      )}
 
-            <View style={styles.guideTextContainer}>
-              <Text style={styles.guideText}>Center your meal</Text>
-            </View>
+      {/* Framing Guide */}
+      <View style={styles.guideContainer} pointerEvents="none">
+        <View style={styles.guideBox}>
+          <View style={[styles.guideCorner, styles.topLeft]} />
+          <View style={[styles.guideCorner, styles.topRight]} />
+          <View style={[styles.guideCorner, styles.bottomLeft]} />
+          <View style={[styles.guideCorner, styles.bottomRight]} />
+
+          <View style={styles.guideTextContainer}>
+            <Text style={styles.guideText}>Center your meal</Text>
           </View>
         </View>
+      </View>
 
-        {/* Bottom Controls — padded to the real screen bottom */}
-        <BlurView
-          intensity={40}
-          tint="dark"
-          style={[styles.bottomBlur, { paddingBottom: insets.bottom + 24 }]}
-        >
-          <View style={styles.bottomControls}>
-            <TouchableOpacity style={styles.sideButton} onPress={pickImage}>
-              <MaterialIcons name="photo-library" size={28} color="white" />
-              <Text style={styles.sideButtonText}>Gallery</Text>
-            </TouchableOpacity>
+      {/* Bottom Controls — padded to the real screen bottom */}
+      <BlurView
+        intensity={40}
+        tint="dark"
+        style={[styles.bottomBlur, { paddingBottom: insets.bottom + 24 }]}
+      >
+        <View style={styles.bottomControls}>
+          <TouchableOpacity style={styles.sideButton} onPress={pickImage}>
+            <MaterialIcons name="photo-library" size={28} color="white" />
+            <Text style={styles.sideButtonText}>Gallery</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.shutterContainer}
-              onPress={takePicture}
-              disabled={isProcessing}
-            >
-              <View style={styles.shutterOuter}>
-                <View
-                  style={[
-                    styles.shutterInner,
-                    isProcessing && { opacity: 0.5 },
-                  ]}
-                >
-                  {isProcessing && <ActivityIndicator color="black" />}
-                </View>
+          <TouchableOpacity
+            style={styles.shutterContainer}
+            onPress={takePicture}
+            disabled={isProcessing}
+          >
+            <View style={styles.shutterOuter}>
+              <View
+                style={[styles.shutterInner, isProcessing && { opacity: 0.5 }]}
+              >
+                {isProcessing && <ActivityIndicator color="black" />}
               </View>
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
 
-            <TouchableOpacity style={styles.sideButton} onPress={toggleFacing}>
-              <MaterialIcons name="flip-camera-ios" size={28} color="white" />
-              <Text style={styles.sideButtonText}>Flip</Text>
-            </TouchableOpacity>
-          </View>
-        </BlurView>
-      </CameraView>
+          <TouchableOpacity style={styles.sideButton} onPress={toggleFacing}>
+            <MaterialIcons name="flip-camera-ios" size={28} color="white" />
+            <Text style={styles.sideButtonText}>Flip</Text>
+          </TouchableOpacity>
+        </View>
+      </BlurView>
 
       {/* Top Controls — outside CameraView so flex children can't occlude them */}
-      <View
-        style={[styles.topControls, { top: insets.top + 12 }]}
+      <SafeAreaView
+        style={[styles.topControls, { top: 30 }]}
         pointerEvents="box-none"
       >
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={() => router.back()}
+          onPress={() => router.canGoBack() && router.back()}
         >
           <MaterialIcons name="close" size={24} color="white" />
         </TouchableOpacity>
@@ -198,7 +202,7 @@ export default function CameraScreen() {
             color="white"
           />
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     </View>
   );
 }
@@ -206,8 +210,6 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
   message: {
     textAlign: "center",
@@ -248,9 +250,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   guideContainer: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 5,
   },
   guideBox: {
     width: SCREEN_WIDTH * 0.75,
