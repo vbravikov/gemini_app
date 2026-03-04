@@ -75,7 +75,8 @@ export default function RootLayout() {
               name="log-details"
               options={{
                 title: "Log Entry",
-                presentation: "modal",
+                // presentation: "modal",
+                headerBackButtonDisplayMode: "minimal",
                 animation: "slide_from_bottom",
                 headerTransparent: true,
                 headerTintColor: colors.isDark ? "#fff" : "rgba(0, 0, 0, 0.8)",

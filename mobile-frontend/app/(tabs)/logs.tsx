@@ -49,7 +49,7 @@ const GridCell = ({
 }) => (
   <Animated.View entering={FadeIn.delay(index * 60)} style={cellStyles.wrap}>
     <Link href={{ pathname: "/log-details", params: { id: log.id } }} asChild>
-      <Link.Trigger>
+      <Link.Trigger withAppleZoom>
         <TouchableOpacity activeOpacity={0.88} style={cellStyles.touch}>
           {/* Full-bleed photo */}
           <Image
