@@ -21,12 +21,15 @@
     }
   },
   "submit": {
-    "production": {},
+    "production": {
+      "ios": {}
+    },
     "preview": {
       "android": {
         "releaseStatus": "draft",
         "track": "internal"
-      }
+      },
+      "ios": {}
     }
   }
 }

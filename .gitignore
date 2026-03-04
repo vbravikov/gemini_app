@@ -42,3 +42,28 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# -------------------------
+# Secrets & credentials
+# -------------------------
+# dotenv files (also covered by .env and .env.* above)
+backend/.env
+mobile-frontend/.env
+
+# Native / signing keys
+*.p8
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Google / Apple service files
+google-services.json
+GoogleService-Info.plist
+
+# Expo / EAS local credentials
+.expo/
+.expo-shared/
+.eas/
+credentials.json
+service-account.json

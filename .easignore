@@ -39,22 +39,9 @@ yarn-error.*
 app-example
 
 # generated native folders
-ios/*
-android/
+/ios
+/android
 
-
-
-
-# Exclude Android build caches and Gradle caches:
-android/.gradle/
-android//build/
-android//intermediates/
-android//captures/
-android//generated/
-# Exclude Expo / CLI caches and agent folders:
-.expo/
-.expo-shared/
-.agents/
 
 # -------------------------
 # Node / React / Vite
@@ -100,3 +87,74 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+
+# -------------------------
+# Node / React / Vite
+# -------------------------
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# -------------------------
+# Python / FastAPI
+# -------------------------
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+.env.*
+
+# -------------------------
+# Editor / OS
+# -------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# -------------------------
+# Secrets & credentials
+# -------------------------
+# dotenv files (also covered by .env and .env.* above)
+backend/.env
+mobile-frontend/.env
+
+# Native / signing keys
+*.p8
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Google / Apple service files
+google-services.json
+GoogleService-Info.plist
+
+# Expo / EAS local credentials
+.expo/
+.expo-shared/
+.eas/
+credentials.json
+service-account.json
